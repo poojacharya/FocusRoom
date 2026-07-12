@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # FocusHub AI
 
 An AI-powered productivity platform for students — Notion-style notes, Discord-style
@@ -95,3 +96,7 @@ Each box below is one feature, implemented and committed on its own.
   error middleware instead of crashing the process.
 - Client and server both read config from `.env` files that are gitignored;
   only `.env.example` files are committed.
+=======
+# FocusRoom
+A project made to study with your friends or by yourselves.
+>>>>>>> ba984b0b5cff117fdaf5a4f8dfdd355e45924278
