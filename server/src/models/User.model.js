@@ -9,6 +9,15 @@ const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 12
  * which is what lets us look a presented token up against this array in
  * the first place. Bcrypt stays reserved for the password field below,
  * where slow-by-design hashing is actually the point.
+ *
+ * Reads/writes against this array go through atomic MongoDB operators
+ * ($push / $pull in auth.controller.js's issueTokenPair/refresh/logout)
+ * rather than instance methods that mutate an in-memory copy and re-save
+ * the whole document. The earlier instance-method version
+ * (addRefreshToken/removeRefreshToken/pruneExpiredRefreshTokens) caused a
+ * read-modify-write race under concurrent refresh calls — see the fix
+ * notes at the top of issueTokenPair() in auth.controller.js — so those
+ * methods have been removed rather than left around to be reused.
  */
 const refreshTokenSchema = new mongoose.Schema(
   {
@@ -48,8 +57,9 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
     // Rotating refresh-token hashes. select:false keeps them out of normal
-    // queries; controllers opt in with .select('+refreshTokens') only when
-    // they actually need to mutate this list (login, refresh, logout).
+    // queries; controllers that need to read them opt in with
+    // .select('+refreshTokens'). Mutations go through atomic $push/$pull
+    // against the collection, not through this loaded copy.
     refreshTokens: {
       type: [refreshTokenSchema],
       default: [],
@@ -67,25 +77,6 @@ userSchema.pre('save', async function hashPassword(next) {
 
 userSchema.methods.comparePassword = function comparePassword(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password)
-}
-
-userSchema.methods.addRefreshToken = function addRefreshToken(hashedToken, expiresAt) {
-  this.refreshTokens.push({ hashedToken, expiresAt })
-}
-
-userSchema.methods.removeRefreshToken = function removeRefreshToken(hashedToken) {
-  this.refreshTokens = this.refreshTokens.filter((rt) => rt.hashedToken !== hashedToken)
-}
-
-userSchema.methods.hasRefreshToken = function hasRefreshToken(hashedToken) {
-  return this.refreshTokens.some((rt) => rt.hashedToken === hashedToken)
-}
-
-// Housekeeping so the array doesn't grow unbounded with dead sessions.
-// Called before adding a new token on login/refresh.
-userSchema.methods.pruneExpiredRefreshTokens = function pruneExpiredRefreshTokens() {
-  const now = new Date()
-  this.refreshTokens = this.refreshTokens.filter((rt) => rt.expiresAt > now)
 }
 
 // Belt-and-braces: even if a controller forgets to select password/refreshTokens
