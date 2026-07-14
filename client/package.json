@@ -21,7 +21,8 @@
     "react-hook-form": "^7.53.0",
     "zod": "^3.23.8",
     "@hookform/resolvers": "^3.9.0",
-    "react-hot-toast": "^2.4.1"
+    "react-hot-toast": "^2.4.1",
+    "lucide-react": "^0.400.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

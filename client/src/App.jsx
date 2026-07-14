@@ -1,6 +1,14 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Home from './pages/Home'
+import DashboardLayout from './layouts/DashboardLayout'
+import Dashboard from './pages/Dashboard'
+import Tasks from './pages/Tasks'
+import Notes from './pages/Notes'
+import StudyRoom from './pages/StudyRoom'
+import Chat from './pages/Chat'
+import Friends from './pages/Friends'
+import Analytics from './pages/Analytics'
+import Settings from './pages/Settings'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
@@ -26,14 +34,26 @@ export default function App() {
     <BrowserRouter>
       <Toaster position="top-center" />
       <Routes>
+        {/* Dashboard shell (Phase 2A): every route nested here renders
+            inside DashboardLayout's <Outlet/> and is gated by
+            ProtectedRoute, same as the old standalone "/" route was. */}
         <Route
-          path="/"
           element={
             <ProtectedRoute>
-              <Home />
+              <DashboardLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/notes" element={<Notes />} />
+          <Route path="/study-room" element={<StudyRoom />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/friends" element={<Friends />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+
         <Route
           path="/login"
           element={

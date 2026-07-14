@@ -15,13 +15,19 @@ export function Button({
   disabled,
   className = '',
   type = 'button',
+  // Added for Phase 2A: dashboard widgets need compact, inline buttons
+  // (e.g. an icon-only play control on the Study Timer card) alongside
+  // the existing full-width auth-form buttons. Defaults to true, so every
+  // existing call site (all of which omit this prop) renders identically
+  // to before this change.
+  fullWidth = true,
   ...props
 }) {
   return (
     <button
       type={type}
       disabled={disabled || isLoading}
-      className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${className}`}
+      className={`inline-flex ${fullWidth ? 'w-full' : ''} items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${className}`}
       {...props}
     >
       {isLoading && <SpinnerIcon className="h-4 w-4 animate-spin" />}
