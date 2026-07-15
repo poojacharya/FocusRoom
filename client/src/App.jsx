@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import DashboardLayout from './layouts/DashboardLayout'
 import Dashboard from './pages/Dashboard'
@@ -16,27 +15,22 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import { ProtectedRoute, PublicOnlyRoute } from './components/auth/RouteGuards'
 import { Toaster } from './lib/toast'
 import { useAuthInit } from './hooks/useAuthInit'
+import { useThemeInit } from './hooks/useThemeInit'
 
 export default function App() {
   useAuthInit()
-
-  // The scaffold already declares `dark:` styles and darkMode: 'class' in
-  // tailwind.config.js, but nothing was ever applying the class. This wires
-  // up the default 'system' preference so those styles — including the new
-  // auth pages — actually activate. No theme-switcher UI here; that's a
-  // separate concern.
-  useEffect(() => {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    document.documentElement.classList.toggle('dark', prefersDark)
-  }, [])
+  // Resolves the saved theme, or falls back to the OS-level preference on
+  // a first visit, and applies it — see hooks/useThemeInit.js and
+  // lib/theme.js. Replaces the Phase 2A inline matchMedia-only effect,
+  // which ignored any saved preference entirely.
+  useThemeInit()
 
   return (
     <BrowserRouter>
       <Toaster position="top-center" />
       <Routes>
-        {/* Dashboard shell (Phase 2A): every route nested here renders
-            inside DashboardLayout's <Outlet/> and is gated by
-            ProtectedRoute, same as the old standalone "/" route was. */}
+        {/* Dashboard shell: every route nested here renders inside
+            DashboardLayout's <Outlet/> and is gated by ProtectedRoute. */}
         <Route
           element={
             <ProtectedRoute>

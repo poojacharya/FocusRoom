@@ -1,17 +1,21 @@
 /**
- * Static mock data for the Phase 2A dashboard shell (goal: "Data can be
- * mocked for now"). Every fetcher returns a Promise so the React Query
- * hooks in hooks/useDashboardData.js behave exactly like they will once
- * real endpoints exist — swapping the body of each fetcher for an
- * `api.get(...)` call (see lib/axios.js) is the only change needed later.
+ * Static mock data for the dashboard summary widgets. As of Phase 2B,
+ * none of these have a real backend counterpart yet — routes/index.js
+ * only mounts /health and /auth — so every fetcher below stays mocked,
+ * per the "no placeholders unless the backend truly doesn't exist" rule.
+ * Each comment below names the endpoint it will call once that feature's
+ * own backend phase lands; hooks/useDashboardData.js call sites won't
+ * need to change, only the fetcher bodies here.
  */
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// Will call: GET /api/tasks/summary (Task Management phase)
 export async function fetchTasksSummary() {
   await delay(400)
   return { completed: 4, pending: 3, total: 7 }
 }
 
+// Will call: GET /api/notes/summary (Notes Editor phase)
 export async function fetchNotesSummary() {
   await delay(350)
   return {
@@ -20,11 +24,13 @@ export async function fetchNotesSummary() {
   }
 }
 
+// Will call: GET /api/analytics/streak (Productivity Dashboard phase)
 export async function fetchStudyStreak() {
   await delay(300)
   return { currentStreak: 6, longestStreak: 14 }
 }
 
+// Will call: GET /api/rooms/upcoming (Study Rooms phase)
 export async function fetchUpcomingSessions() {
   await delay(450)
   return [
@@ -38,6 +44,7 @@ export async function fetchUpcomingSessions() {
   ]
 }
 
+// Will call: GET /api/activity/recent (Productivity Dashboard phase)
 export async function fetchRecentActivity() {
   await delay(500)
   return [
