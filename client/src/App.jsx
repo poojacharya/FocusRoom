@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import DashboardLayout from './layouts/DashboardLayout'
 import Dashboard from './pages/Dashboard'
 import Tasks from './pages/Tasks'
+import Calendar from './pages/Calendar'
 import Notes from './pages/Notes'
 import StudyRoom from './pages/StudyRoom'
 import Chat from './pages/Chat'
@@ -40,6 +41,7 @@ export default function App() {
         >
           <Route path="/" element={<Dashboard />} />
           <Route path="/tasks" element={<Tasks />} />
+          <Route path="/calendar" element={<Calendar />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/study-room" element={<StudyRoom />} />
           <Route path="/chat" element={<Chat />} />

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   CheckSquare,
+  Calendar,
   NotebookText,
   UsersRound,
   Users2,
@@ -14,6 +15,7 @@ import {
 export const NAV_ITEMS = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard, end: true },
   { label: 'Tasks', path: '/tasks', icon: CheckSquare },
+  { label: 'Calendar', path: '/calendar', icon: Calendar },
   { label: 'Notes', path: '/notes', icon: NotebookText },
   { label: 'Study Rooms', path: '/study-room', icon: UsersRound },
   { label: 'Friends', path: '/friends', icon: Users2 },
