@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
+import { History } from 'lucide-react'
 import { PageContainer } from '../components/ui/PageContainer'
 import { Card } from '../components/ui/Card'
 import { SectionHeader } from '../components/ui/SectionHeader'
@@ -27,7 +29,19 @@ export default function Focus() {
 
   return (
     <PageContainer>
-      <SectionHeader title="Focus" subtitle="Pomodoro, stopwatch, and countdown timers" />
+      <SectionHeader
+        title="Focus"
+        subtitle="Pomodoro, stopwatch, and countdown timers"
+        action={
+          <Link
+            to="/focus/history"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 transition-colors duration-150 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
+          >
+            <History className="h-4 w-4" />
+            History
+          </Link>
+        }
+      />
 
       <Card padding="lg" className="flex flex-col items-center gap-6">
         <TimerModeTabs />

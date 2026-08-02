@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Tasks from './pages/Tasks'
 import Notes from './pages/Notes'
 import Focus from './pages/Focus'
+import FocusHistory from './pages/FocusHistory'
 import StudyRoom from './pages/StudyRoom'
 import Chat from './pages/Chat'
 import Friends from './pages/Friends'
@@ -43,6 +44,10 @@ export default function App() {
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/focus" element={<Focus />} />
+          {/* Not in the sidebar nav — reached via the "History" link on
+              the Focus page itself, same as how a note or task's detail
+              view doesn't need its own top-level nav entry. */}
+          <Route path="/focus/history" element={<FocusHistory />} />
           <Route path="/study-room" element={<StudyRoom />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/friends" element={<Friends />} />
