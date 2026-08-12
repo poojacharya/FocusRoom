@@ -5,6 +5,7 @@ import notesRoutes from './notes.routes.js'
 import tasksRoutes from './tasks.routes.js'
 import focusSessionsRoutes from './focusSessions.routes.js'
 import friendsRoutes from './friends.routes.js'
+import studyRoomsRoutes from './studyRooms.routes.js'
 
 const router = Router()
 
@@ -14,6 +15,7 @@ router.use('/notes', notesRoutes)
 router.use('/tasks', tasksRoutes)
 router.use('/focus-sessions', focusSessionsRoutes)
 router.use('/friends', friendsRoutes)
+router.use('/study-rooms', studyRoomsRoutes)
 
 // Future feature routers get mounted here, e.g.:
 // router.use('/rooms', roomRoutes)
