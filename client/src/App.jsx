@@ -6,6 +6,7 @@ import Notes from './pages/Notes'
 import Focus from './pages/Focus'
 import FocusHistory from './pages/FocusHistory'
 import StudyRoom from './pages/StudyRoom'
+import StudyRoomDetail from './pages/StudyRoomDetail'
 import Chat from './pages/Chat'
 import Friends from './pages/Friends'
 import Analytics from './pages/Analytics'
@@ -49,6 +50,10 @@ export default function App() {
               view doesn't need its own top-level nav entry. */}
           <Route path="/focus/history" element={<FocusHistory />} />
           <Route path="/study-room" element={<StudyRoom />} />
+          {/* Same precedent as /focus/history — a single room's detail
+              view is reached by clicking a room card, not from the
+              sidebar, so it doesn't get its own nav entry either. */}
+          <Route path="/study-room/:id" element={<StudyRoomDetail />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/analytics" element={<Analytics />} />
