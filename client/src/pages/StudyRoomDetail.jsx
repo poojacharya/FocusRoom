@@ -6,6 +6,7 @@ import { SectionHeader } from '../components/ui/SectionHeader'
 import { Button } from '../components/ui/Button'
 import { SkeletonBlock } from '../components/ui/Skeleton'
 import { RoomMemberItem } from '../components/study-rooms/RoomMemberItem'
+import { ChatPanel } from '../components/study-rooms/ChatPanel'
 import { useRoomQuery, useLeaveRoom, useDeleteRoom } from '../hooks/useStudyRooms'
 import { useAuthStore } from '../store/useAuthStore'
 import { showSuccessToast } from '../lib/toast'
@@ -107,27 +108,33 @@ export default function StudyRoomDetail() {
             </p>
           </Card>
 
-          <Card padding="none">
-            <SectionHeader
-              title="Members"
-              action={
-                <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-                  <Users2 className="h-3.5 w-3.5" />
-                  {room.members.length}
-                </span>
-              }
-              className="px-4 pt-4"
-            />
-            <ul className="space-y-1 p-2 pb-4">
-              {room.members.map((member) => (
-                <RoomMemberItem
-                  key={member._id}
-                  member={member}
-                  isOwner={String(member._id) === String(room.owner?._id)}
-                />
-              ))}
-            </ul>
-          </Card>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <ChatPanel />
+            </div>
+
+            <Card padding="none">
+              <SectionHeader
+                title="Members"
+                action={
+                  <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                    <Users2 className="h-3.5 w-3.5" />
+                    {room.members.length}
+                  </span>
+                }
+                className="px-4 pt-4"
+              />
+              <ul className="space-y-1 p-2 pb-4">
+                {room.members.map((member) => (
+                  <RoomMemberItem
+                    key={member._id}
+                    member={member}
+                    isOwner={String(member._id) === String(room.owner?._id)}
+                  />
+                ))}
+              </ul>
+            </Card>
+          </div>
         </>
       )}
     </PageContainer>
