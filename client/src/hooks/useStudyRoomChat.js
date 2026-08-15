@@ -1,20 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { connectSocket } from '../lib/socket'
+import { useRoomMessagesQuery } from './useStudyRooms'
 
 /**
  * Owns the live Socket.IO connection for a single Study Room's chat:
- * connects the shared socket, joins the room's channel
- * (`studyRoom:join`), listens for incoming messages
- * (`studyRoom:receiveMessage`), and exposes a send() function
+ * loads recent persisted history via REST, connects the shared socket,
+ * joins the room's channel (`studyRoom:join`), listens for incoming
+ * messages (`studyRoom:receiveMessage`), and exposes a send() function
  * (`studyRoom:sendMessage`) — the exact event names the backend already
- * implements (see server/src/sockets/studyRoomSocket.js). Nothing here
- * is persisted; the message list lives only in this hook's state for as
- * long as the page is open, per this phase's scope.
+ * implements (see server/src/sockets/studyRoomSocket.js).
  */
 export function useStudyRoomChat(roomId) {
+  const { data: history = [], isLoading: isHistoryLoading } = useRoomMessagesQuery(roomId)
+
   const [messages, setMessages] = useState([])
   const [status, setStatus] = useState('connecting') // 'connecting' | 'joined' | 'error'
   const socketRef = useRef(null)
+  const hasSeededHistoryRef = useRef(false)
+
+  // Reset per room: a fresh room starts from its own history, not
+  // whatever the previously open room had accumulated.
+  useEffect(() => {
+    setMessages([])
+    hasSeededHistoryRef.current = false
+  }, [roomId])
+
+  // Seed the list from persisted history once it loads. Merged rather
+  // than overwritten, and de-duplicated by _id, so a live message that
+  // already arrived over the socket while history was still loading
+  // isn't dropped or double-counted once history lands.
+  useEffect(() => {
+    if (isHistoryLoading || hasSeededHistoryRef.current) return
+    hasSeededHistoryRef.current = true
+    setMessages((prev) => {
+      const historyIds = new Set(history.map((m) => m._id))
+      const liveOnly = prev.filter((m) => !historyIds.has(m._id))
+      return [...history, ...liveOnly]
+    })
+  }, [history, isHistoryLoading])
 
   useEffect(() => {
     if (!roomId) return undefined
@@ -24,7 +47,6 @@ export function useStudyRoomChat(roomId) {
     let cancelled = false
 
     setStatus('connecting')
-    setMessages([])
 
     function joinRoom() {
       socket.emit('studyRoom:join', roomId, (response) => {
@@ -35,7 +57,7 @@ export function useStudyRoomChat(roomId) {
 
     function handleReceiveMessage(message) {
       if (message.roomId !== roomId) return
-      setMessages((prev) => [...prev, message])
+      setMessages((prev) => (prev.some((m) => m._id === message._id) ? prev : [...prev, message]))
     }
 
     function handleDisconnect() {

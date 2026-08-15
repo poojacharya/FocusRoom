@@ -2,9 +2,11 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import { StudyRoom } from '../models/StudyRoom.model.js'
+import { ChatMessage } from '../models/ChatMessage.model.js'
 
 const MEMBER_SELECT = 'name email'
 const MAX_CODE_GENERATION_ATTEMPTS = 5
+const MESSAGE_HISTORY_LIMIT = 50
 
 async function generateUniqueRoomCode() {
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
@@ -53,6 +55,25 @@ export const getRoom = asyncHandler(async (req, res) => {
   }
 
   res.status(200).json(new ApiResponse(200, room))
+})
+
+// Only room members can read a room's chat history — same membership
+// check getRoom uses, reused as-is rather than trusting the client.
+// Returns the most recent MESSAGE_HISTORY_LIMIT messages, oldest first,
+// ready for the chat panel to render top-to-bottom without an extra
+// client-side sort.
+export const listRoomMessages = asyncHandler(async (req, res) => {
+  const isMember = await StudyRoom.exists({ _id: req.params.id, members: req.user._id })
+  if (!isMember) {
+    throw new ApiError(404, 'Study room not found')
+  }
+
+  const recentFirst = await ChatMessage.find({ room: req.params.id })
+    .sort({ createdAt: -1 })
+    .limit(MESSAGE_HISTORY_LIMIT)
+    .populate('sender', MEMBER_SELECT)
+
+  res.status(200).json(new ApiResponse(200, recentFirst.reverse()))
 })
 
 // Atomic check-and-join, mirroring the friend-request accept pattern:

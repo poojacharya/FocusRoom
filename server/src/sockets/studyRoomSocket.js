@@ -1,13 +1,14 @@
 import { StudyRoom } from '../models/StudyRoom.model.js'
+import { ChatMessage } from '../models/ChatMessage.model.js'
 
 const roomChannel = (roomId) => `study-room:${roomId}`
 
 /**
  * Study Room live chat — join/leave the Socket.IO room backing a
  * StudyRoom document, and broadcast chat messages to whoever is
- * currently joined to it. No persistence (messages aren't saved
- * anywhere) and no presence tracking beyond Socket.IO's own room
- * membership — both explicitly out of scope for this pass.
+ * currently joined to it. Messages are persisted to ChatMessage before
+ * being broadcast (see studyRoom:sendMessage below); presence tracking
+ * beyond Socket.IO's own room membership remains out of scope.
  */
 export function registerStudyRoomHandlers(io, socket) {
   socket.on('studyRoom:join', async (roomId, callback) => {
@@ -59,16 +60,24 @@ export function registerStudyRoomHandlers(io, socket) {
         return callback?.({ ok: false, error: 'Join the room before sending messages' })
       }
 
+      // Persisted first, then broadcast from the saved document — so
+      // the id/timestamp on the emitted event are the real, durable
+      // ones (usable later for history) rather than values invented at
+      // emit time that could drift from what's actually stored.
+      const saved = await ChatMessage.create({
+        room: roomId,
+        sender: socket.user._id,
+        content: text.trim(),
+      })
+
       const message = {
+        _id: saved._id,
         roomId,
-        text: text.trim(),
+        text: saved.content,
         sender: { _id: socket.user._id, name: socket.user.name },
-        sentAt: new Date().toISOString(),
+        sentAt: saved.createdAt.toISOString(),
       }
 
-      // Broadcast-only — nothing here is persisted, per this phase's
-      // scope. A later phase can add a Message model and save this
-      // before/instead of emitting.
       io.to(channel).emit('studyRoom:receiveMessage', message)
       callback?.({ ok: true })
     } catch {

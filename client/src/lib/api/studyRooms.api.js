@@ -10,6 +10,21 @@ export async function fetchRoom(id) {
   return data.data // StudyRoom
 }
 
+// Normalized to the exact shape studyRoom:receiveMessage events already
+// use (roomId/text/sender/sentAt) — see hooks/useStudyRoomChat.js — so
+// persisted history and live socket messages can sit in the same list
+// without the chat panel needing to branch on where a message came from.
+export async function fetchRoomMessages(id) {
+  const { data } = await api.get(`/study-rooms/${id}/messages`)
+  return data.data.map((message) => ({
+    _id: message._id,
+    roomId: message.room,
+    text: message.content,
+    sender: message.sender,
+    sentAt: message.createdAt,
+  }))
+}
+
 export async function createRoomRequest({ name }) {
   const { data } = await api.post('/study-rooms', { name })
   return data.data // StudyRoom
