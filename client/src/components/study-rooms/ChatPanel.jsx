@@ -4,23 +4,22 @@ import { Card } from '../ui/Card'
 import { SectionHeader } from '../ui/SectionHeader'
 import { EmptyState } from '../ui/EmptyState'
 import { Avatar } from '../ui/Avatar'
-import { useAuthStore } from '../../store/useAuthStore'
+import { useStudyRoomChat } from '../../hooks/useStudyRoomChat'
 
-function formatMessageTime(date) {
-  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+function formatMessageTime(isoString) {
+  return new Date(isoString).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }
 
 /**
- * Local-only chat panel for the Study Room page. Messages live in this
- * component's state for as long as the page stays open — there's no
- * Socket.IO connection yet and nothing is sent anywhere, so this only
- * ever shows the current person talking to themselves. Wiring this up
- * to the existing Socket.IO backend (join/leave/sendMessage/
- * receiveMessage) and adding persistence are later phases.
+ * Study Room chat panel, wired to the existing Socket.IO backend (see
+ * hooks/useStudyRoomChat.js and server/src/sockets/studyRoomSocket.js)
+ * — messages are sent and received live via the `studyRoom:join` /
+ * `studyRoom:sendMessage` / `studyRoom:receiveMessage` events. Still
+ * nothing persisted: the message list only lives for as long as this
+ * panel stays mounted, per this phase's scope.
  */
-export function ChatPanel() {
-  const user = useAuthStore((s) => s.user)
-  const [messages, setMessages] = useState([])
+export function ChatPanel({ roomId }) {
+  const { messages, status, sendMessage } = useStudyRoomChat(roomId)
   const [draft, setDraft] = useState('')
   const scrollRef = useRef(null)
 
@@ -32,24 +31,22 @@ export function ChatPanel() {
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    const text = draft.trim()
-    if (!text) return
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `${Date.now()}-${prev.length}`,
-        text,
-        sender: { name: user?.name || 'You' },
-        sentAt: new Date(),
-      },
-    ])
+    if (!draft.trim()) return
+    sendMessage(draft)
     setDraft('')
   }
 
+  const isConnected = status === 'joined'
+
   return (
     <Card padding="none" className="flex h-[28rem] flex-col">
-      <SectionHeader title="Chat" subtitle="Study room conversation" className="px-4 pt-4" />
+      <SectionHeader
+        title="Chat"
+        subtitle={
+          status === 'joined' ? 'Study room conversation' : status === 'error' ? 'Disconnected' : 'Connecting…'
+        }
+        className="px-4 pt-4"
+      />
 
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
         {messages.length === 0 ? (
@@ -61,13 +58,13 @@ export function ChatPanel() {
             />
           </div>
         ) : (
-          messages.map((message) => (
-            <div key={message.id} className="flex items-start gap-2.5">
-              <Avatar name={message.sender.name} size="sm" />
+          messages.map((message, index) => (
+            <div key={`${message.sentAt}-${index}`} className="flex items-start gap-2.5">
+              <Avatar name={message.sender?.name} size="sm" />
               <div className="min-w-0 max-w-[75%]">
                 <div className="flex items-baseline gap-2">
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
-                    {message.sender.name}
+                    {message.sender?.name || 'Someone'}
                   </span>
                   <span className="text-[11px] text-gray-400 dark:text-gray-500">
                     {formatMessageTime(message.sentAt)}
@@ -94,12 +91,13 @@ export function ChatPanel() {
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Type a message…"
-          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 outline-none transition-colors focus:border-brand-400 focus:bg-white dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:focus:bg-white/10"
+          placeholder={isConnected ? 'Type a message…' : 'Connecting…'}
+          disabled={!isConnected}
+          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 outline-none transition-colors focus:border-brand-400 focus:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:focus:bg-white/10"
         />
         <button
           type="submit"
-          disabled={!draft.trim()}
+          disabled={!isConnected || !draft.trim()}
           aria-label="Send message"
           className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
         >

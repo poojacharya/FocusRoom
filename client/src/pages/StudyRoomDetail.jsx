@@ -110,7 +110,7 @@ export default function StudyRoomDetail() {
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <ChatPanel />
+              <ChatPanel roomId={room._id} />
             </div>
 
             <Card padding="none">
