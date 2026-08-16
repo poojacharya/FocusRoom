@@ -5,6 +5,7 @@ import Tasks from './pages/Tasks'
 import Notes from './pages/Notes'
 import Focus from './pages/Focus'
 import FocusHistory from './pages/FocusHistory'
+import Planner from './pages/Planner'
 import StudyRoom from './pages/StudyRoom'
 import StudyRoomDetail from './pages/StudyRoomDetail'
 import Chat from './pages/Chat'
@@ -49,6 +50,7 @@ export default function App() {
               the Focus page itself, same as how a note or task's detail
               view doesn't need its own top-level nav entry. */}
           <Route path="/focus/history" element={<FocusHistory />} />
+          <Route path="/planner" element={<Planner />} />
           <Route path="/study-room" element={<StudyRoom />} />
           {/* Same precedent as /focus/history — a single room's detail
               view is reached by clicking a room card, not from the
