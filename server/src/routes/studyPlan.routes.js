@@ -6,6 +6,7 @@ import {
   createStudyPlan,
   updateStudyPlan,
   deleteStudyPlan,
+  generateStudyPlanSchedule,
 } from '../controllers/studyPlan.controller.js'
 
 const router = Router()
@@ -20,5 +21,11 @@ router.get('/', getMyStudyPlan)
 router.post('/', validateCreateStudyPlan, createStudyPlan)
 router.patch('/', validateUpdateStudyPlan, updateStudyPlan)
 router.delete('/', deleteStudyPlan)
+
+// Same body shape as POST '/' (examDate/subjects/availableStudyHours),
+// reusing validateCreateStudyPlan as-is — this route additionally
+// upserts the plan and calls Claude to populate generatedSchedule (see
+// generateStudyPlanSchedule).
+router.post('/generate', validateCreateStudyPlan, generateStudyPlanSchedule)
 
 export default router

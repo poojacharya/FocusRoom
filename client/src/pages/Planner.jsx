@@ -4,32 +4,25 @@ import { SectionHeader } from '../components/ui/SectionHeader'
 import { SkeletonBlock } from '../components/ui/Skeleton'
 import { PlannerForm } from '../components/planner/PlannerForm'
 import { SavedPlanCard } from '../components/planner/SavedPlanCard'
-import { useStudyPlanQuery, useCreateStudyPlan, useUpdateStudyPlan } from '../hooks/useStudyPlan'
+import { useStudyPlanQuery, useGenerateStudySchedule } from '../hooks/useStudyPlan'
 import { useStudyPlannerForm } from '../hooks/useStudyPlannerForm'
 
 export default function Planner() {
   const { data: plan, isLoading, isError } = useStudyPlanQuery()
-  const createPlan = useCreateStudyPlan()
-  const updatePlan = useUpdateStudyPlan()
+  const generateSchedule = useGenerateStudySchedule()
 
   const form = useStudyPlannerForm(plan, isLoading)
-  const isSaving = createPlan.isPending || updatePlan.isPending
 
   const handleGenerate = (event) => {
     event.preventDefault()
-    const payload = form.toPayload()
-    if (plan) {
-      updatePlan.mutate(payload)
-    } else {
-      createPlan.mutate(payload)
-    }
+    generateSchedule.mutate(form.toPayload())
   }
 
   return (
     <PageContainer>
       <SectionHeader
         title="AI Study Planner"
-        subtitle="Lay out your exam, subjects, and study hours — AI scheduling is coming soon"
+        subtitle="Lay out your exam, subjects, and study hours — Claude builds the schedule"
       />
 
       {isLoading ? (
@@ -50,7 +43,7 @@ export default function Planner() {
               title={plan ? 'Edit your plan' : 'Build your plan'}
               subtitle="Add your exam date, subjects, and how many hours you can study"
             />
-            <PlannerForm form={form} onSubmit={handleGenerate} isSaving={isSaving} />
+            <PlannerForm form={form} onSubmit={handleGenerate} isSaving={generateSchedule.isPending} />
           </Card>
 
           <SavedPlanCard plan={plan} />

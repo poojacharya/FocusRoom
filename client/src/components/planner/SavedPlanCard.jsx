@@ -1,7 +1,8 @@
-import { CalendarClock, Clock, ListChecks, Sparkles } from 'lucide-react'
+import { CalendarClock, Clock, ListChecks } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { SectionHeader } from '../ui/SectionHeader'
 import { EmptyState } from '../ui/EmptyState'
+import { GeneratedScheduleCard } from './GeneratedScheduleCard'
 import { formatExamDate, daysUntilExam } from '../../lib/utils/formatExamDate'
 
 function ExamDateSummary({ examDate }) {
@@ -79,14 +80,7 @@ export function SavedPlanCard({ plan }) {
         </div>
       </Card>
 
-      <Card>
-        <SectionHeader title="AI-generated schedule" />
-        <EmptyState
-          icon={Sparkles}
-          title="Coming soon"
-          description="Claude-powered schedule generation isn't wired up yet — your inputs are saved and ready for it."
-        />
-      </Card>
+      <GeneratedScheduleCard schedule={plan.generatedSchedule} />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import {
   createStudyPlanRequest,
   updateStudyPlanRequest,
   deleteStudyPlanRequest,
+  generateStudyScheduleRequest,
 } from '../lib/api/studyPlan.api'
 import { showErrorToast, showSuccessToast } from '../lib/toast'
 
@@ -15,6 +16,10 @@ export function useStudyPlanQuery() {
   return useQuery({ queryKey: STUDY_PLAN_KEY, queryFn: fetchStudyPlan })
 }
 
+// Not wired into the Planner UI — the "Generate Plan" button now goes
+// straight through useGenerateStudySchedule below, which upserts the
+// plan and calls Claude in a single request. Left here as a plain save
+// path in case a future "save without generating" control is added.
 export function useCreateStudyPlan() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -51,5 +56,24 @@ export function useDeleteStudyPlan() {
       showSuccessToast('Study plan deleted')
     },
     onError: (error) => showErrorToast(error?.response?.data?.message || "Couldn't delete your study plan"),
+  })
+}
+
+// Drives the Planner page's "Generate Plan" button: sends the current
+// form values to POST /study-plan/generate, which saves them AND
+// returns the plan with a freshly Claude-generated `generatedSchedule`.
+// Patches the same STUDY_PLAN_KEY cache entry useStudyPlanQuery reads,
+// so the saved-plan panel and the generated schedule update together
+// from one response.
+export function useGenerateStudySchedule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: generateStudyScheduleRequest,
+    onSuccess: (plan) => {
+      queryClient.setQueryData(STUDY_PLAN_KEY, plan)
+      showSuccessToast('Study schedule generated')
+    },
+    onError: (error) =>
+      showErrorToast(error?.response?.data?.message || "Couldn't generate a study schedule right now"),
   })
 }
