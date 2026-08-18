@@ -28,7 +28,7 @@ function ExamDateSummary({ examDate }) {
   )
 }
 
-export function SavedPlanCard({ plan }) {
+export function SavedPlanCard({ plan, onRegenerate, isRegenerating, regenerateError }) {
   if (!plan) {
     return (
       <Card>
@@ -80,7 +80,12 @@ export function SavedPlanCard({ plan }) {
         </div>
       </Card>
 
-      <GeneratedScheduleCard schedule={plan.generatedSchedule} />
+      <GeneratedScheduleCard
+        schedule={plan.generatedSchedule}
+        onRegenerate={onRegenerate}
+        isRegenerating={isRegenerating}
+        regenerateError={regenerateError}
+      />
     </div>
   )
 }

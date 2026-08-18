@@ -1,7 +1,8 @@
-import { Sparkles } from 'lucide-react'
+import { RefreshCw, Sparkles } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { SectionHeader } from '../ui/SectionHeader'
 import { EmptyState } from '../ui/EmptyState'
+import { Button } from '../ui/Button'
 
 function formatDayLabel(dateString) {
   const date = new Date(dateString)
@@ -12,15 +13,41 @@ function formatDayLabel(dateString) {
 /**
  * Read-only display of StudyPlan.generatedSchedule — the structured
  * JSON object Claude returns (see server/src/utils/aiStudyPlanner.js
- * for the exact shape). Purely presentational: no mutation, no editing,
- * matching this phase's brief of displaying the generated result.
+ * for the exact shape) — plus a "Regenerate" action. Regenerate re-runs
+ * the exact same POST /study-plan/generate call the form's "Generate
+ * Plan" submit uses, just with the plan's already-saved inputs (passed
+ * in via onRegenerate from Planner.jsx) instead of the current form
+ * draft, and simply replaces whatever schedule was here before.
  */
-export function GeneratedScheduleCard({ schedule }) {
+export function GeneratedScheduleCard({ schedule, onRegenerate, isRegenerating, regenerateError }) {
   const days = schedule?.days ?? []
 
   return (
     <Card>
-      <SectionHeader title="AI-generated schedule" subtitle={schedule?.summary} />
+      <SectionHeader
+        title="AI-generated schedule"
+        subtitle={schedule?.summary}
+        action={
+          <Button
+            type="button"
+            variant="secondary"
+            fullWidth={false}
+            className="px-3 py-1.5"
+            onClick={onRegenerate}
+            isLoading={isRegenerating}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Regenerate
+          </Button>
+        }
+      />
+
+      {regenerateError && (
+        <p className="mb-3 text-xs text-red-500">
+          Couldn&apos;t regenerate your schedule — please try again.
+        </p>
+      )}
+
       {days.length === 0 ? (
         <EmptyState
           icon={Sparkles}
