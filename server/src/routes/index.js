@@ -7,6 +7,7 @@ import focusSessionsRoutes from './focusSessions.routes.js'
 import friendsRoutes from './friends.routes.js'
 import studyRoomsRoutes from './studyRooms.routes.js'
 import studyPlanRoutes from './studyPlan.routes.js'
+import analyticsRoutes from './analytics.routes.js'
 
 const router = Router()
 
@@ -18,6 +19,7 @@ router.use('/focus-sessions', focusSessionsRoutes)
 router.use('/friends', friendsRoutes)
 router.use('/study-rooms', studyRoomsRoutes)
 router.use('/study-plan', studyPlanRoutes)
+router.use('/analytics', analyticsRoutes)
 
 // Future feature routers get mounted here, e.g.:
 // router.use('/rooms', roomRoutes)
