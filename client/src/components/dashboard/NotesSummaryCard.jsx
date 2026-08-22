@@ -3,13 +3,7 @@ import { Card } from '../ui/Card'
 import { SectionHeader } from '../ui/SectionHeader'
 import { SkeletonLine } from '../ui/Skeleton'
 import { useNotesSummary } from '../../hooks/useDashboardData'
-
-function formatRelative(isoString) {
-  const minutes = Math.round((Date.now() - new Date(isoString).getTime()) / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
-  return `${Math.round(minutes / 60)}h ago`
-}
+import { formatRelativeTime } from '../../lib/utils/formatRelativeTime'
 
 export function NotesSummaryCard() {
   const { data, isLoading, isError } = useNotesSummary()
@@ -33,12 +27,18 @@ export function NotesSummaryCard() {
             </span>
             <span className="text-sm text-gray-500 dark:text-gray-400">total notes</span>
           </div>
-          <p className="mt-3 truncate text-sm text-gray-600 dark:text-gray-300">
-            {data.lastEdited.title}
-          </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500">
-            {formatRelative(data.lastEdited.updatedAt)}
-          </p>
+          {data.lastEdited ? (
+            <>
+              <p className="mt-3 truncate text-sm text-gray-600 dark:text-gray-300">
+                {data.lastEdited.title?.trim() || 'Untitled note'}
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                {formatRelativeTime(data.lastEdited.updatedAt)}
+              </p>
+            </>
+          ) : (
+            <p className="mt-3 text-sm text-gray-400 dark:text-gray-500">No notes yet</p>
+          )}
         </>
       )}
     </Card>
