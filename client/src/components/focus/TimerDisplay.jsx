@@ -17,7 +17,7 @@ export function TimerDisplay({ mode, status, elapsedSeconds, targetSeconds }) {
   const progress = isCountingDown && targetSeconds > 0 ? Math.min(elapsedSeconds / targetSeconds, 1) : 0
 
   return (
-    <div className="relative flex h-64 w-64 items-center justify-center">
+    <div className="relative flex h-56 w-56 items-center justify-center sm:h-64 sm:w-64">
       {isCountingDown && (
         <svg viewBox="0 0 200 200" className="absolute inset-0 -rotate-90">
           <circle

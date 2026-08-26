@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import DashboardLayout from './layouts/DashboardLayout'
 import Dashboard from './pages/Dashboard'
 import Tasks from './pages/Tasks'
@@ -94,6 +94,13 @@ export default function App() {
             </PublicOnlyRoute>
           }
         />
+
+        {/* Any unmatched/stale URL (typo, old bookmark, removed route)
+            previously rendered a blank page since nothing in this tree
+            matched it. Redirecting to "/" routes it back through
+            ProtectedRoute, which itself falls back to "/login" for a
+            signed-out visitor — so this never bypasses auth. */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )

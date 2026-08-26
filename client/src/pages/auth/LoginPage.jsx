@@ -63,7 +63,7 @@ export default function LoginPage() {
             <label className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-white/20 dark:bg-white/5"
                 {...register('rememberMe')}
               />
               Remember me
