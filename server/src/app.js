@@ -4,11 +4,11 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
-import mongoSanitize from 'express-mongo-sanitize'
 
 import routes from './routes/index.js'
 import { notFound } from './middleware/notFound.js'
 import { errorHandler } from './middleware/errorHandler.js'
+import { sanitizeMongoInput } from './middleware/sanitizeMongoInput.js'
 
 export function createApp() {
   const app = express()
@@ -24,7 +24,11 @@ export function createApp() {
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ extended: true, limit: '10mb' }))
   app.use(cookieParser())
-  app.use(mongoSanitize())
+  // express-mongo-sanitize@2.x reassigns req.query wholesale, which
+  // throws on Express 4.21+ since req.query has no setter — that was
+  // breaking every request (including register/login). Replaced with
+  // an in-place sanitizer; see middleware/sanitizeMongoInput.js.
+  app.use(sanitizeMongoInput)
 
   if (process.env.NODE_ENV !== 'test') {
     app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
