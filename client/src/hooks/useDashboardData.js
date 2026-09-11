@@ -1,11 +1,14 @@
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { useTasksQuery } from './useTasks'
 import { useNotesQuery } from './useNotes'
+import { useFocusSessionsQuery } from './useFocusSessions'
+import { useMyRoomsQuery } from './useStudyRooms'
 import { formatRelativeTime } from '../lib/utils/formatRelativeTime'
-import { fetchStudyStreak, fetchUpcomingSessions } from '../lib/mock/dashboardMockData'
+import { toDateKey } from '../lib/utils/calendarDate'
 
 const RECENT_ACTIVITY_LIMIT = 5
+const UPCOMING_SESSIONS_LIMIT = 5
+const DAY_MS = 24 * 60 * 60 * 1000
 
 /**
  * Tasks summary, Notes summary, and Recent Activity are all derived
@@ -18,10 +21,55 @@ const RECENT_ACTIVITY_LIMIT = 5
  * dashboard shares the same React Query cache entries as the Tasks and
  * Notes pages instead of firing a second, separate fetch.
  *
- * Study streak and upcoming study-room sessions stay backed by
- * lib/mock/dashboardMockData.js — there's no streak model or
- * "scheduled session" concept on the backend yet for either.
+ * Study streak is derived from GET /api/focus-sessions (consecutive
+ * local days with a completed session). Upcoming sessions map the user's
+ * study rooms from GET /api/study-rooms — rooms have no scheduled start
+ * time, so the card shows live rooms the person has joined.
  */
+
+function dateKeyToLocalDate(dateKey) {
+  return new Date(`${dateKey}T00:00:00`)
+}
+
+function computeStudyStreak(sessions) {
+  const daysWithSession = new Set()
+  for (const session of sessions) {
+    if (session.completed === false) continue
+    const startedAt = new Date(session.startedAt)
+    if (Number.isNaN(startedAt.getTime())) continue
+    daysWithSession.add(toDateKey(startedAt))
+  }
+
+  const sortedDays = [...daysWithSession].sort()
+  let longestStreak = 0
+  let run = 0
+  let previousKey = null
+  for (const key of sortedDays) {
+    if (previousKey != null) {
+      const gap =
+        (dateKeyToLocalDate(key).getTime() - dateKeyToLocalDate(previousKey).getTime()) / DAY_MS
+      run = Math.round(gap) === 1 ? run + 1 : 1
+    } else {
+      run = 1
+    }
+    longestStreak = Math.max(longestStreak, run)
+    previousKey = key
+  }
+
+  let currentStreak = 0
+  const cursor = new Date()
+  cursor.setHours(0, 0, 0, 0)
+  if (!daysWithSession.has(toDateKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  while (daysWithSession.has(toDateKey(cursor))) {
+    currentStreak += 1
+    cursor.setDate(cursor.getDate() - 1)
+  }
+
+  return { currentStreak, longestStreak }
+}
+
 export function useTasksSummary() {
   const { data: tasks = [], isLoading, isError } = useTasksQuery()
 
@@ -49,11 +97,28 @@ export function useNotesSummary() {
 }
 
 export function useStudyStreak() {
-  return useQuery({ queryKey: ['dashboard', 'study-streak'], queryFn: fetchStudyStreak })
+  const { data: sessions = [], isLoading, isError } = useFocusSessionsQuery()
+
+  const data = useMemo(() => computeStudyStreak(sessions), [sessions])
+
+  return { data, isLoading, isError }
 }
 
 export function useUpcomingSessions() {
-  return useQuery({ queryKey: ['dashboard', 'upcoming-sessions'], queryFn: fetchUpcomingSessions })
+  const { data: rooms = [], isLoading, isError } = useMyRoomsQuery()
+
+  const data = useMemo(
+    () =>
+      rooms.slice(0, UPCOMING_SESSIONS_LIMIT).map((room) => ({
+        id: room._id,
+        title: room.name,
+        startsAt: formatRelativeTime(room.updatedAt || room.createdAt),
+        participants: room.members?.length ?? 0,
+      })),
+    [rooms],
+  )
+
+  return { data, isLoading, isError }
 }
 
 export function useRecentActivity() {

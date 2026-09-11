@@ -13,16 +13,15 @@ const COMPLETION_MESSAGE = {
  * Owns the actual setInterval driving the timer, plus the auto-save that
  * fires the moment a pomodoro/countdown session reaches its target, and
  * the manual "finish" path used to save a stopwatch session (or end a
- * pomodoro/countdown early). Mounted once by the Focus page; everything
- * below it only ever reads derived values or calls the store's
- * start/pause/resume/reset actions directly.
+ * pomodoro/countdown early). Mounted once on the dashboard shell so the
+ * clock keeps running (and can auto-save) while navigating between pages.
+ * Tick uses wall-clock timestamps from the store, not +1 per interval.
  */
 export function useFocusTimerEngine() {
   const mode = useFocusTimerStore((s) => s.mode)
   const status = useFocusTimerStore((s) => s.status)
   const targetSeconds = useFocusTimerStore((s) => s.targetSeconds)
   const elapsedSeconds = useFocusTimerStore((s) => s.elapsedSeconds)
-  const sessionStartedAt = useFocusTimerStore((s) => s.sessionStartedAt)
   const tick = useFocusTimerStore((s) => s.tick)
   const markCompleted = useFocusTimerStore((s) => s.markCompleted)
   const reset = useFocusTimerStore((s) => s.reset)
@@ -34,23 +33,39 @@ export function useFocusTimerEngine() {
   const hasSavedRef = useRef(false)
 
   // The ticking clock itself. Re-created whenever `status` flips to/away
-  // from 'running' — nothing else needs to restart the interval.
+  // from 'running'. Immediate tick catches up after navigation or a
+  // background-tab throttle; interval only refreshes the display.
   useEffect(() => {
     if (status !== 'running') return undefined
+    tick()
     const interval = setInterval(tick, 1000)
-    return () => clearInterval(interval)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') tick()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [status, tick])
 
   const saveSession = (duration, { silent = false } = {}) => {
+    const { mode: currentMode, sessionStartedAt } = useFocusTimerStore.getState()
     if (!sessionStartedAt || duration < 1) return
     hasSavedRef.current = true
     markCompleted()
 
     createFocusSession.mutate(
-      { mode, duration, startedAt: sessionStartedAt, endedAt: new Date().toISOString(), completed: true },
+      {
+        mode: currentMode,
+        duration,
+        startedAt: sessionStartedAt,
+        endedAt: new Date().toISOString(),
+        completed: true,
+      },
       {
         onSuccess: () => {
-          if (!silent) showSuccessToast(COMPLETION_MESSAGE[mode] || 'Session saved')
+          if (!silent) showSuccessToast(COMPLETION_MESSAGE[currentMode] || 'Session saved')
           reset()
           hasSavedRef.current = false
         },
@@ -62,6 +77,9 @@ export function useFocusTimerEngine() {
     )
   }
 
+  const saveSessionRef = useRef(saveSession)
+  saveSessionRef.current = saveSession
+
   // Auto-save the moment a pomodoro/countdown reaches its configured
   // target. Stopwatch has no target, so it never auto-completes — it's
   // only ever ended via the manual "Finish" control below.
@@ -71,16 +89,26 @@ export function useFocusTimerEngine() {
     if (elapsedSeconds < targetSeconds) return
     if (hasSavedRef.current) return
 
-    saveSession(targetSeconds)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    saveSessionRef.current(targetSeconds)
   }, [mode, status, elapsedSeconds, targetSeconds])
 
   // Manual finish — the only way a stopwatch session ever gets saved,
   // and an early-finish escape hatch for pomodoro/countdown.
   const finishSession = () => {
-    const duration = mode === 'stopwatch' ? elapsedSeconds : Math.min(elapsedSeconds, targetSeconds)
-    saveSession(duration)
+    tick()
+    const latest = useFocusTimerStore.getState()
+    const duration =
+      latest.mode === 'stopwatch' ? latest.elapsedSeconds : Math.min(latest.elapsedSeconds, latest.targetSeconds)
+    saveSessionRef.current(duration)
   }
+
+  useEffect(() => {
+    useFocusTimerStore.setState({ finishSession })
+  }, [tick])
+
+  useEffect(() => {
+    useFocusTimerStore.setState({ isSaving: createFocusSession.isPending })
+  }, [createFocusSession.isPending])
 
   return {
     isSaving: createFocusSession.isPending,

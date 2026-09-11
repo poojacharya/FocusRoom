@@ -10,7 +10,6 @@ import { TimerControls } from '../components/focus/TimerControls'
 import { DurationConfig } from '../components/focus/DurationConfig'
 import { RecentSessionsList } from '../components/focus/RecentSessionsList'
 import { useFocusTimerStore } from '../store/useFocusTimerStore'
-import { useFocusTimerEngine } from '../hooks/useFocusTimerEngine'
 
 export default function Focus() {
   const mode = useFocusTimerStore((s) => s.mode)
@@ -21,11 +20,11 @@ export default function Focus() {
   const pause = useFocusTimerStore((s) => s.pause)
   const resume = useFocusTimerStore((s) => s.resume)
   const reset = useFocusTimerStore((s) => s.reset)
+  const isSaving = useFocusTimerStore((s) => s.isSaving)
+  const finishSession = useFocusTimerStore((s) => s.finishSession)
 
-  // The only place ticking + auto-save actually happen — everything
-  // above just reads store state or calls its plain start/pause/resume/
-  // reset actions.
-  const { isSaving, finishSession } = useFocusTimerEngine()
+  // Ticking + auto-save live on DashboardLayout (useFocusTimerEngine)
+  // so elapsed time keeps moving while navigating away from this page.
 
   return (
     <PageContainer>
