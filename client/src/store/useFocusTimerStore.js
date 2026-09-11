@@ -48,6 +48,7 @@ export const useFocusTimerStore = create((set, get) => ({
   // clock keeps running across routes).
   isSaving: false,
   finishSession: () => {},
+  unlockAlarm: () => {},
 
   setMode: (mode) => {
     if (get().status !== 'idle') return // switching mid-run would orphan the current run's progress

@@ -22,6 +22,7 @@ export default function Focus() {
   const reset = useFocusTimerStore((s) => s.reset)
   const isSaving = useFocusTimerStore((s) => s.isSaving)
   const finishSession = useFocusTimerStore((s) => s.finishSession)
+  const unlockAlarm = useFocusTimerStore((s) => s.unlockAlarm)
 
   // Ticking + auto-save live on DashboardLayout (useFocusTimerEngine)
   // so elapsed time keeps moving while navigating away from this page.
@@ -60,9 +61,15 @@ export default function Focus() {
             status={status}
             mode={mode}
             isSaving={isSaving}
-            onStart={start}
+            onStart={() => {
+              unlockAlarm()
+              start()
+            }}
             onPause={pause}
-            onResume={resume}
+            onResume={() => {
+              unlockAlarm()
+              resume()
+            }}
             onReset={reset}
             onFinish={finishSession}
           />

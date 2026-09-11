@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useFocusTimerStore } from '../store/useFocusTimerStore'
 import { useCreateFocusSession } from './useFocusSessions'
 import { showSuccessToast, showErrorToast } from '../lib/toast'
@@ -7,6 +7,17 @@ const COMPLETION_MESSAGE = {
   pomodoro: 'Pomodoro complete — nice focus session 🍅',
   countdown: 'Countdown complete',
   stopwatch: 'Session saved',
+}
+
+function createAlarmContext() {
+  if (typeof window === 'undefined') return null
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext
+  if (!AudioContextConstructor) return null
+  try {
+    return new AudioContextConstructor()
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -27,10 +38,52 @@ export function useFocusTimerEngine() {
   const reset = useFocusTimerStore((s) => s.reset)
 
   const createFocusSession = useCreateFocusSession()
+  const alarmContextRef = useRef(null)
   // Guards against the auto-complete effect firing twice for the same
   // run (e.g. a re-render landing exactly on the tick that crosses the
   // target) before the save's onSuccess has had a chance to reset().
   const hasSavedRef = useRef(false)
+
+  // Browsers only allow audio after a user gesture. Start/Resume invoke
+  // this function directly from their button handlers, so completion can
+  // ring even if it happens later while the person is on another page.
+  const unlockAlarm = useCallback(() => {
+    if (!alarmContextRef.current) alarmContextRef.current = createAlarmContext()
+    const context = alarmContextRef.current
+    if (context?.state === 'suspended') context.resume().catch(() => {})
+  }, [])
+
+  const playAlarm = useCallback(() => {
+    const context = alarmContextRef.current
+    if (!context) return
+
+    const ring = () => {
+      const startAt = context.currentTime
+      const ringOffsets = [0, 0.24, 0.48]
+      ringOffsets.forEach((offset) => {
+        const oscillator = context.createOscillator()
+        const gain = context.createGain()
+        const noteStart = startAt + offset
+        const noteEnd = noteStart + 0.18
+
+        oscillator.type = 'sine'
+        oscillator.frequency.setValueAtTime(880, noteStart)
+        gain.gain.setValueAtTime(0.0001, noteStart)
+        gain.gain.exponentialRampToValueAtTime(0.14, noteStart + 0.015)
+        gain.gain.exponentialRampToValueAtTime(0.0001, noteEnd)
+        oscillator.connect(gain)
+        gain.connect(context.destination)
+        oscillator.start(noteStart)
+        oscillator.stop(noteEnd)
+      })
+    }
+
+    if (context.state === 'running') {
+      ring()
+    } else {
+      context.resume().then(ring).catch(() => {})
+    }
+  }, [])
 
   // The ticking clock itself. Re-created whenever `status` flips to/away
   // from 'running'. Immediate tick catches up after navigation or a
@@ -89,8 +142,9 @@ export function useFocusTimerEngine() {
     if (elapsedSeconds < targetSeconds) return
     if (hasSavedRef.current) return
 
+    playAlarm()
     saveSessionRef.current(targetSeconds)
-  }, [mode, status, elapsedSeconds, targetSeconds])
+  }, [mode, status, elapsedSeconds, targetSeconds, playAlarm])
 
   // Manual finish — the only way a stopwatch session ever gets saved,
   // and an early-finish escape hatch for pomodoro/countdown.
@@ -105,6 +159,10 @@ export function useFocusTimerEngine() {
   useEffect(() => {
     useFocusTimerStore.setState({ finishSession })
   }, [tick])
+
+  useEffect(() => {
+    useFocusTimerStore.setState({ unlockAlarm })
+  }, [unlockAlarm])
 
   useEffect(() => {
     useFocusTimerStore.setState({ isSaving: createFocusSession.isPending })
