@@ -1,7 +1,15 @@
 import { formatRelativeTime } from '../../lib/utils/formatRelativeTime'
 
 export function NoteListItem({ note, isActive, onSelect }) {
-  const preview = (note.body || '').replace(/\s+/g, ' ').trim().slice(0, 80)
+  const preview = (note.body || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80)
 
   return (
     <button
