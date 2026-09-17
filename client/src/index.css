@@ -2,10 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark;
+}
+
 html {
   @apply antialiased;
+  background-color: #111a18;
+}
+
+html:not(.dark) {
+  color-scheme: light;
+  background-color: #f4f7f4;
 }
 
 body {
-  @apply bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-50 transition-colors;
+  @apply bg-[#111a18] text-[#f1f7f4] transition-colors;
+}
+
+html:not(.dark) body {
+  @apply bg-[#f4f7f4] text-[#1e2b2b];
 }

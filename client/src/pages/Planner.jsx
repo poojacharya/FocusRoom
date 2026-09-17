@@ -49,13 +49,13 @@ export default function Planner() {
     <PageContainer>
       <SectionHeader
         title="AI Study Planner"
-        subtitle="Lay out your exam, subjects, and study hours — Claude builds the schedule"
+        subtitle="Lay out your exam, subjects, and time available — get a detailed day-by-day study roadmap"
       />
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <SkeletonBlock className="h-96 w-full lg:col-span-2" />
+        <div className="space-y-4">
           <SkeletonBlock className="h-96 w-full" />
+          <SkeletonBlock className="h-[28rem] w-full" />
         </div>
       ) : isError ? (
         <Card>
@@ -64,11 +64,11 @@ export default function Planner() {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+        <div className="space-y-4">
+          <Card>
             <SectionHeader
               title={plan ? 'Edit your plan' : 'Build your plan'}
-              subtitle="Add your exam date, subjects, and how many hours you can study"
+              subtitle="Add your exam date, subjects, and how many hours you can study each day"
             />
             <PlannerForm form={form} onSubmit={handleGenerate} isSaving={generateSchedule.isPending} />
           </Card>

@@ -1,8 +1,8 @@
 {
-  "name": "focushub-ai",
+  "name": "focusroom-ai",
   "private": true,
   "version": "0.1.0",
-  "description": "FocusHub AI - AI-powered productivity platform for students",
+  "description": "FocusRoom - productivity and study platform for focused work",
   "workspaces": [
     "client",
     "server"

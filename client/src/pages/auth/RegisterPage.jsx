@@ -33,7 +33,7 @@ export default function RegisterPage() {
     try {
       const { user, accessToken } = await registerUser({ name, email, password })
       setAuth({ user, accessToken, remember: true })
-      showSuccessToast(`Welcome to FocusHub, ${user.name.split(' ')[0]}`)
+      showSuccessToast(`Welcome to FocusRoom, ${user.name.split(' ')[0]}`)
       navigate('/', { replace: true })
     } catch (error) {
       showErrorToast(error?.response?.data?.message || 'Could not create your account')
@@ -44,7 +44,7 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout tagline="Everything you need to stay in flow.">
-      <AuthCard title="Create your account" subtitle="Start your FocusHub AI workspace">
+      <AuthCard title="Create your account" subtitle="Start your FocusRoom workspace">
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <Input
             label="Display name"

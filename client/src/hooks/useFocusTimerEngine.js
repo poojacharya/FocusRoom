@@ -58,7 +58,6 @@ export function useFocusTimerEngine() {
 
     let count = 0
     const maxPlays = 1
-    const delayMs = 0
 
     const playNext = () => {
       if (count >= maxPlays) return
@@ -136,17 +135,17 @@ export function useFocusTimerEngine() {
 
   // Manual finish — the only way a stopwatch session ever gets saved,
   // and an early-finish escape hatch for pomodoro/countdown.
-  const finishSession = () => {
+  const finishSession = useCallback(() => {
     tick()
     const latest = useFocusTimerStore.getState()
     const duration =
       latest.mode === 'stopwatch' ? latest.elapsedSeconds : Math.min(latest.elapsedSeconds, latest.targetSeconds)
     saveSessionRef.current(duration)
-  }
+  }, [tick])
 
   useEffect(() => {
     useFocusTimerStore.setState({ finishSession })
-  }, [tick])
+  }, [finishSession])
 
   useEffect(() => {
     useFocusTimerStore.setState({ unlockAlarm })

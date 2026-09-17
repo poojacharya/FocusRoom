@@ -14,27 +14,41 @@ function getApiKey() {
   return key
 }
 
-const SYSTEM_PROMPT = `You are a study-schedule generator for a student productivity app called FocusHub AI. You produce realistic, encouraging, achievable day-by-day study schedules from the information you're given.
+const SYSTEM_PROMPT = `You are a study-schedule generator for a student productivity app called FocusRoom. You produce realistic, encouraging, detailed, and actionable day-by-day study schedules from the information you're given.
 
 Respond with ONLY valid JSON — no markdown code fences, no commentary before or after — matching exactly this shape:
 {
   "generatedAt": "<ISO 8601 timestamp>",
   "examDate": "<ISO 8601 date or null>",
   "totalDays": <integer, number of study days scheduled>,
+  "summary": "<2-3 sentence overview of the overall strategy>",
+  "strategy": "<1-2 sentence explanation of the study rhythm and priorities>",
   "days": [
     {
       "date": "<YYYY-MM-DD>",
       "hours": <number>,
-      "subjects": [
-        { "name": "<subject name>", "topics": ["<topic>", "..."] }
+      "focusBlocks": [
+        {
+          "title": "<short block name>",
+          "duration": <integer, minutes>,
+          "subject": "<subject name>",
+          "goal": "<clear learning outcome for that block, with a concrete action and result>"
+        }
       ],
-      "notes": "<one short, encouraging, actionable sentence>"
+      "subjects": [
+        {
+          "name": "<subject name>",
+          "goal": "<what the student should achieve for this subject today, using a concrete learning outcome>",
+          "topics": ["<topic>", "..."]
+        }
+      ],
+      "notes": "<one short, encouraging, actionable sentence that tells the student what to do next>",
+      "checkpoint": "<one brief reminder to keep focus and momentum>"
     }
-  ],
-  "summary": "<2-3 sentence overview of the overall strategy>"
+  ]
 }
 
-If no subjects are provided, return an empty "days" array and explain why in "summary". Never include any text outside the JSON object.`
+Create a detailed but realistic plan: give each day 2-4 focus blocks with a useful title, duration, subject, and goal. Every goal must explain an action and the intended result, not just the topic name. Spread the workload across subjects proportionally to the number of topics and difficulty, and keep each day under the available hours. Prefer a sensible cadence over listing every single day for long gaps, but do include enough detail that the student understands what to do each day. Make the plan feel practical: explain the steps, highlight what to review, practice, or memorize, and include small checkpoints. If no subjects are provided, return an empty "days" array and explain why in "summary". Never include any text outside the JSON object.`
 
 function buildPrompt({ examDate, subjects, availableStudyHours }) {
   const today = new Date().toISOString().slice(0, 10)
@@ -58,7 +72,9 @@ Available study hours per day: ${hoursPerDay}
 Subjects and topics:
 ${subjectLines}
 
-Build a realistic day-by-day study schedule from today until the exam date (inclusive of today, excluding the exam date itself, which should be left free for rest/review). Distribute time across subjects roughly proportional to how many topics each has. Group related topics on the same day where sensible rather than scattering single topics across many days. Keep each day's total hours at or under the available hours per day. If the gap between today and the exam date is very large, favor a sensible study cadence over listing every single day past a reasonable planning horizon (cap around ${MAX_SCHEDULE_DAYS} days).`
+Build a realistic, detailed day-by-day study schedule from today until the exam date (inclusive of today, excluding the exam date itself, which should be left free for rest/review). Distribute time across subjects roughly proportional to how many topics each has and their difficulty. Group related topics on the same day where sensible rather than scattering single topics across many days.
+
+For every planned day, include 2-4 focus blocks with a clear title, minutes, subject, and goal. Every block goal must explain a specific action, the topic area, and the outcome. Example: "Review the oxidation-reduction reactions from class notes and complete 6 practice questions to build confidence before timed recall." Include a short subject-level goal for each subject worked that day, and a final encouraging sentence plus a one-line checkpoint reminder. Keep each day's total hours at or under the available hours per day. If the gap between today and the exam date is very large, favor a sensible study cadence over listing every single day past a reasonable planning horizon (cap around ${MAX_SCHEDULE_DAYS} days).`
 }
 
 function extractJson(text) {
@@ -112,6 +128,10 @@ function validateSchedule(schedule) {
     throw new Error('AI response missing summary')
   }
 
+  if (schedule.strategy !== undefined && (typeof schedule.strategy !== 'string' || !schedule.strategy.trim())) {
+    throw new Error('AI response strategy must be a non-empty string when provided')
+  }
+
   if (!Array.isArray(schedule.days)) {
     throw new Error('AI response missing days array')
   }
@@ -126,6 +146,22 @@ function validateSchedule(schedule) {
     if (typeof day.hours !== 'number' || Number.isNaN(day.hours) || day.hours < 0) {
       throw new Error(`Day ${index} has invalid hours`)
     }
+    if (day.focusBlocks !== undefined) {
+      if (!Array.isArray(day.focusBlocks)) {
+        throw new Error(`Day ${index} focusBlocks must be an array when provided`)
+      }
+      day.focusBlocks.forEach((block, blockIndex) => {
+        if (!block || typeof block !== 'object' || Array.isArray(block)) {
+          throw new Error(`Day ${index} focus block ${blockIndex} is invalid`)
+        }
+        if (typeof block.title !== 'string' || !block.title.trim()) {
+          throw new Error(`Day ${index} focus block ${blockIndex} missing title`)
+        }
+        if (typeof block.duration !== 'number' || Number.isNaN(block.duration) || block.duration <= 0) {
+          throw new Error(`Day ${index} focus block ${blockIndex} missing valid duration`)
+        }
+      })
+    }
     if (!Array.isArray(day.subjects)) {
       throw new Error(`Day ${index} missing subjects array`)
     }
@@ -135,6 +171,9 @@ function validateSchedule(schedule) {
       }
       if (typeof subject.name !== 'string' || !subject.name.trim()) {
         throw new Error(`Day ${index} subject ${subjectIndex} missing name`)
+      }
+      if (subject.goal !== undefined && (typeof subject.goal !== 'string' || !subject.goal.trim())) {
+        throw new Error(`Day ${index} subject ${subjectIndex} goal must be a string when provided`)
       }
       if (!Array.isArray(subject.topics)) {
         throw new Error(`Day ${index} subject ${subjectIndex} missing topics array`)

@@ -74,9 +74,6 @@ export default function CalendarPage() {
                 <SkeletonBlock className="h-8 w-40" />
                 <div className="grid grid-cols-7 gap-1">
                   {Array.from({ length: 42 }).map((_, index) => (
-                    // Static placeholder grid — index-as-key is fine here,
-                    // these skeleton cells never reorder or change.
-                    // eslint-disable-next-line react/no-array-index-key
                     <SkeletonBlock key={index} className="h-16 w-full sm:h-20" />
                   ))}
                 </div>

@@ -8,7 +8,7 @@
  */
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-export async function fetchSearchResults(query) {
+export async function fetchSearchResults() {
   await delay(250)
   return [] // nothing to search yet — see comment above
 }

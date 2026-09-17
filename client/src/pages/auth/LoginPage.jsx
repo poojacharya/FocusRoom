@@ -130,7 +130,7 @@ export default function LoginPage() {
 
   return (
     <AuthLayout tagline="Focus better, together.">
-      <AuthCard title="Welcome back" subtitle="Sign in to continue to FocusHub">
+      <AuthCard title="Welcome back" subtitle="Sign in to continue to FocusRoom">
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <Input
             label="Email"

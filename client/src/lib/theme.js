@@ -1,4 +1,4 @@
-const THEME_STORAGE_KEY = 'focushub_theme'
+const THEME_STORAGE_KEY = 'focusroom_theme'
 
 export function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -33,5 +33,5 @@ export function applyThemeClass(theme) {
 // only thing that writes to storage. Until then, "system" is meant to
 // keep tracking the OS, not get silently frozen as a saved choice.
 export function resolveInitialTheme() {
-  return getStoredTheme() ?? getSystemTheme()
+  return getStoredTheme() ?? 'dark'
 }

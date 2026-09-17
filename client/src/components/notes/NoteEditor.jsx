@@ -23,7 +23,7 @@ const ALLOWED_ALIGNMENTS = new Set(['left', 'center', 'right', 'justify'])
 
 function isSafeLink(href) {
   try {
-    const protocol = new URL(href, 'https://focushub.local').protocol
+    const protocol = new URL(href, 'https://focusroom.local').protocol
     return ['http:', 'https:', 'mailto:', 'tel:'].includes(protocol)
   } catch {
     return false

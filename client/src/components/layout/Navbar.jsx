@@ -56,7 +56,7 @@ export function Navbar() {
         </button>
         <NotificationBell />
         <Link to="/settings" aria-label="Account settings" className="ml-1">
-          <Avatar name={user?.name} size="sm" />
+          <Avatar name={user?.name} src={user?.avatar} size="sm" />
         </Link>
       </div>
     </header>

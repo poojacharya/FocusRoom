@@ -37,10 +37,18 @@ export function AuthLayout({ children, tagline = 'A calmer way to get things don
           transition={{ duration: 0.6 }}
           className="relative z-10 flex items-center gap-2 text-white"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 font-semibold backdrop-blur-sm">
-            F
-          </div>
-          <span className="text-lg font-semibold tracking-tight">FocusHub AI</span>
+          <svg viewBox="0 0 64 64" className="h-8 w-8 shrink-0" aria-hidden="true">
+            <defs>
+              <linearGradient id="focusroom-auth-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.9)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0.2)" />
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="56" height="56" rx="18" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.24)" />
+            <path d="M22 18h20v6H28v8h12v6H28v14h-6V18Z" fill="white" />
+            <path d="M42 18c6 0 10 4 10 10 0 4-2 7-6 9l6 10h-8l-5-9h-3v9h-6V18h12Zm0 6h-6v8h6c2 0 4-1 4-4s-2-4-4-4Z" fill="rgba(255,255,255,0.9)" />
+          </svg>
+          <span className="text-lg font-semibold tracking-tight">FocusRoom</span>
         </motion.div>
 
         <motion.div

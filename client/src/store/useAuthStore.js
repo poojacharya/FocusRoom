@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
-const REMEMBER_KEY = 'focushub_remember_me'
-const CACHED_USER_KEY = 'focushub_cached_user'
+const REMEMBER_KEY = 'focusroom_remember_me'
+const CACHED_USER_KEY = 'focusroom_cached_user'
 
 function readCachedUser() {
   try {
@@ -13,20 +13,23 @@ function readCachedUser() {
 }
 
 function cacheUser(user) {
-  // Only non-sensitive display fields — never the access token, which
-  // stays in memory only (see lib/axios.js interceptors).
-  localStorage.setItem(CACHED_USER_KEY, JSON.stringify({ name: user.name, email: user.email }))
+  if (!user) return
+
+  const serializableUser = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    avatar: user.avatar || null,
+  }
+
+  localStorage.setItem(CACHED_USER_KEY, JSON.stringify(serializableUser))
 }
 
 export const useAuthStore = create((set) => ({
   user: null,
   accessToken: null,
   isAuthenticated: false,
-  // True while a login/register/logout request is in flight.
   isLoading: false,
-  // Starts true; useAuthInit() flips it to false once the initial silent-
-  // refresh check has resolved, so route guards don't flash the wrong
-  // screen before we actually know whether the session is live.
   isInitializing: true,
 
   setAccessToken: (accessToken) => set({ accessToken }),
@@ -39,9 +42,14 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  // Called after a successful silent refresh on app boot — we already have
-  // a (possibly cached) user in state, we're just confirming the session
-  // is still live and updating the in-memory token.
+  updateUserProfile: (updates) => {
+    set((state) => {
+      const nextUser = { ...(state.user || {}), ...updates }
+      cacheUser(nextUser)
+      return { user: nextUser }
+    })
+  },
+
   restoreSession: (accessToken) => set({ accessToken, isAuthenticated: true }),
 
   hydrateFromCache: () => {
