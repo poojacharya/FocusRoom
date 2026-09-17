@@ -7,6 +7,11 @@ import { connectDB } from './src/config/db.js'
 import { initSockets } from './src/sockets/index.js'
 
 const PORT = process.env.PORT || 5000
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  process.env.CLIENT_URL,
+].filter(Boolean)
 
 async function start() {
   await connectDB()
@@ -16,7 +21,14 @@ async function start() {
 
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true)
+          return
+        }
+
+        callback(new Error(`Socket.IO origin blocked: ${origin}`))
+      },
       credentials: true,
     },
   })
