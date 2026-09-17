@@ -1,14 +1,13 @@
 import { ApiError } from './ApiError.js'
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
-const ANTHROPIC_VERSION = '2023-06-01'
-const DEFAULT_MODEL = 'claude-sonnet-5'
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
+const DEFAULT_MODEL = 'gemini-3.6-flash'
 const DEFAULT_HOURS_PER_DAY = 2
 const MAX_SCHEDULE_DAYS = 120
 const MAX_TOKENS = 8000
 
 function getApiKey() {
-  const key = process.env.ANTHROPIC_API_KEY
+  const key = process.env.GEMINI_API_KEY
   if (!key) {
     throw new ApiError(500, 'AI study planner is not configured on this server')
   }
@@ -63,14 +62,91 @@ Build a realistic day-by-day study schedule from today until the exam date (incl
 }
 
 function extractJson(text) {
-  const trimmed = text.trim()
-  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
-  const candidate = fencedMatch ? fencedMatch[1] : trimmed
-  return JSON.parse(candidate)
+  const trimmed = String(text ?? '').trim()
+  const candidates = []
+
+  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+  if (fencedMatch) candidates.push(fencedMatch[1])
+
+  const firstBrace = trimmed.indexOf('{')
+  const lastBrace = trimmed.lastIndexOf('}')
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    candidates.push(trimmed.slice(firstBrace, lastBrace + 1))
+  }
+
+  candidates.push(trimmed)
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate)
+      if (parsed && typeof parsed === 'object') return parsed
+    } catch {
+      // Try the next candidate if the content includes surrounding text.
+    }
+  }
+
+  throw new Error('Could not find a valid JSON object in the Gemini response')
+}
+
+function extractGeminiText(payload) {
+  const candidates = Array.isArray(payload?.candidates) ? payload.candidates : []
+
+  for (const candidate of candidates) {
+    const text = candidate?.content?.parts
+      ?.map((part) => (typeof part?.text === 'string' ? part.text : ''))
+      .join('\n')
+      .trim()
+
+    if (text) return text
+  }
+
+  return null
+}
+
+function validateSchedule(schedule) {
+  if (!schedule || typeof schedule !== 'object' || Array.isArray(schedule)) {
+    throw new Error('AI response must be a JSON object')
+  }
+
+  if (typeof schedule.summary !== 'string' || !schedule.summary.trim()) {
+    throw new Error('AI response missing summary')
+  }
+
+  if (!Array.isArray(schedule.days)) {
+    throw new Error('AI response missing days array')
+  }
+
+  schedule.days.forEach((day, index) => {
+    if (!day || typeof day !== 'object' || Array.isArray(day)) {
+      throw new Error(`Day ${index} is invalid`)
+    }
+    if (typeof day.date !== 'string' || !day.date) {
+      throw new Error(`Day ${index} missing date`)
+    }
+    if (typeof day.hours !== 'number' || Number.isNaN(day.hours) || day.hours < 0) {
+      throw new Error(`Day ${index} has invalid hours`)
+    }
+    if (!Array.isArray(day.subjects)) {
+      throw new Error(`Day ${index} missing subjects array`)
+    }
+    day.subjects.forEach((subject, subjectIndex) => {
+      if (!subject || typeof subject !== 'object' || Array.isArray(subject)) {
+        throw new Error(`Day ${index} subject ${subjectIndex} is invalid`)
+      }
+      if (typeof subject.name !== 'string' || !subject.name.trim()) {
+        throw new Error(`Day ${index} subject ${subjectIndex} missing name`)
+      }
+      if (!Array.isArray(subject.topics)) {
+        throw new Error(`Day ${index} subject ${subjectIndex} missing topics array`)
+      }
+    })
+  })
+
+  return schedule
 }
 
 /**
- * Calls the Claude API server-side — the API key is read from the
+ * Calls the Gemini API server-side — the API key is read from the
  * environment and never sent to or exposed by the client — to turn a
  * study plan's raw inputs (exam date, subjects/topics, available hours)
  * into a structured, day-by-day schedule. Returns a plain JS object
@@ -79,22 +155,30 @@ function extractJson(text) {
  */
 export async function generateStudySchedule({ examDate, subjects, availableStudyHours }) {
   const apiKey = getApiKey()
-  const model = process.env.CLAUDE_MODEL || DEFAULT_MODEL
+  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL
+  const url = `${GEMINI_API_URL}/${model}:generateContent?key=${encodeURIComponent(apiKey)}`
 
   let response
   try {
-    response = await fetch(ANTHROPIC_API_URL, {
+    response = await fetch(url, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': ANTHROPIC_VERSION,
       },
       body: JSON.stringify({
-        model,
-        max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: buildPrompt({ examDate, subjects, availableStudyHours }) }],
+        systemInstruction: {
+          parts: [{ text: SYSTEM_PROMPT }],
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: buildPrompt({ examDate, subjects, availableStudyHours }) }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: MAX_TOKENS,
+        },
       }),
     })
   } catch {
@@ -102,18 +186,29 @@ export async function generateStudySchedule({ examDate, subjects, availableStudy
   }
 
   if (!response.ok) {
-    throw new ApiError(502, "Couldn't generate a study schedule right now")
+    let message = "Couldn't generate a study schedule right now"
+
+    try {
+      const errorData = await response.json()
+      const apiMessage = errorData?.error?.message || errorData?.message
+      if (apiMessage) message = `Gemini API rejected the request: ${apiMessage}`
+    } catch {
+      // Fall back to the generic message above if the error payload is empty.
+    }
+
+    throw new ApiError(502, message)
   }
 
   const data = await response.json()
-  const textBlock = data.content?.find((block) => block.type === 'text')
-  if (!textBlock?.text) {
+  const responseText = extractGeminiText(data)
+  if (!responseText) {
     throw new ApiError(502, 'AI study planner returned an unexpected response')
   }
 
   try {
-    return extractJson(textBlock.text)
+    const parsed = extractJson(responseText)
+    return validateSchedule(parsed)
   } catch {
-    throw new ApiError(502, "Couldn't parse the generated study schedule")
+    throw new ApiError(502, "Couldn't parse or validate the generated study schedule from Gemini's response")
   }
 }

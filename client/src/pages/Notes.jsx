@@ -7,7 +7,7 @@ import { NoteEditor } from '../components/notes/NoteEditor'
 import { EmptyState } from '../components/ui/EmptyState'
 
 export default function Notes() {
-  const { data: notes = [], isLoading, isError } = useNotesQuery()
+  const { data: notes = [], isLoading, isError, isFetching } = useNotesQuery()
   const createNote = useCreateNote()
   const deleteNote = useDeleteNote()
 
@@ -19,17 +19,18 @@ export default function Notes() {
 
   const selectedNote = notes.find((n) => n._id === selectedNoteId) ?? null
 
-  // If the selected note disappears (deleted elsewhere, or a refetch no
-  // longer contains it), fall back to the most recently edited note
-  // instead of leaving the editor pointed at nothing.
+  // Ignore transient refetches while the notes list is still settling; a stale
+  // list can otherwise briefly make the editor jump to a different note.
   useEffect(() => {
+    if (isFetching) return
+
     if (selectedNoteId && !selectedNote && notes.length > 0) {
       selectNote(notes[0]._id)
     } else if (selectedNoteId && notes.length === 0) {
       clearSelectedNote()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notes, selectedNoteId])
+  }, [notes, selectedNoteId, isFetching])
 
   const handleCreateNote = () => {
     createNote.mutate({ title: '', body: '' }, { onSuccess: (note) => selectNote(note._id) })

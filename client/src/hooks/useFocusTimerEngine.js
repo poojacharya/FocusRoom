@@ -54,35 +54,23 @@ export function useFocusTimerEngine() {
   }, [])
 
   const playAlarm = useCallback(() => {
-    const context = alarmContextRef.current
-    if (!context) return
+    const audioUrl = '/alarm.mp3'
 
-    const ring = () => {
-      const startAt = context.currentTime
-      const ringOffsets = [0, 0.24, 0.48]
-      ringOffsets.forEach((offset) => {
-        const oscillator = context.createOscillator()
-        const gain = context.createGain()
-        const noteStart = startAt + offset
-        const noteEnd = noteStart + 0.18
+    let count = 0
+    const maxPlays = 1
+    const delayMs = 0
 
-        oscillator.type = 'sine'
-        oscillator.frequency.setValueAtTime(880, noteStart)
-        gain.gain.setValueAtTime(0.0001, noteStart)
-        gain.gain.exponentialRampToValueAtTime(0.14, noteStart + 0.015)
-        gain.gain.exponentialRampToValueAtTime(0.0001, noteEnd)
-        oscillator.connect(gain)
-        gain.connect(context.destination)
-        oscillator.start(noteStart)
-        oscillator.stop(noteEnd)
-      })
+    const playNext = () => {
+      if (count >= maxPlays) return
+
+      const audio = new Audio(audioUrl)
+      audio.volume = 1
+      audio.play().catch(() => {})
+
+      count += 1
     }
 
-    if (context.state === 'running') {
-      ring()
-    } else {
-      context.resume().then(ring).catch(() => {})
-    }
+    playNext()
   }, [])
 
   // The ticking clock itself. Re-created whenever `status` flips to/away

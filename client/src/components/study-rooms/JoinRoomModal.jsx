@@ -36,16 +36,17 @@ export function JoinRoomModal({ isOpen, onSubmit, onClose, isSubmitting }) {
             className="fixed inset-0 z-40 bg-gray-900/40 backdrop-blur-sm"
             aria-hidden="true"
           />
-          <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="join-room-title"
-            className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-100 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-gray-900"
-          >
+          <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="join-room-title"
+              className="pointer-events-auto w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-gray-900"
+            >
             <div className="mb-4 flex items-center justify-between">
               <h2 id="join-room-title" className="text-lg font-semibold text-gray-900 dark:text-gray-50">
                 Join a study room
@@ -82,7 +83,8 @@ export function JoinRoomModal({ isOpen, onSubmit, onClose, isSubmitting }) {
                 </Button>
               </div>
             </form>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

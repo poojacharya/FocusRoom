@@ -2,6 +2,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiError } from '../utils/ApiError.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import { User } from '../models/User.model.js'
+import { verifyGoogleIdToken } from '../utils/googleAuth.js'
 import {
   signAccessToken,
   signRefreshToken,
@@ -119,6 +120,45 @@ export const login = asyncHandler(async (req, res) => {
   setRefreshCookie(res, refreshToken, expiresAt)
 
   res.status(200).json(new ApiResponse(200, { user, accessToken }, 'Login successful'))
+})
+
+export const googleLogin = asyncHandler(async (req, res) => {
+  const { credential } = req.body
+
+  if (!credential || typeof credential !== 'string') {
+    throw new ApiError(400, 'Google credential is required')
+  }
+
+  const googleUser = await verifyGoogleIdToken(credential)
+
+  let user = await User.findOne({
+    $or: [{ googleId: googleUser.googleId }, { email: googleUser.email }],
+  })
+
+  if (!user) {
+    user = await User.create({
+      ...googleUser,
+      password: undefined,
+    })
+  } else {
+    const shouldUpdate =
+      !user.googleId ||
+      !user.avatar && googleUser.avatar ||
+      !user.name || user.name === user.email.split('@')[0]
+
+    if (shouldUpdate) {
+      user.googleId = user.googleId || googleUser.googleId
+      user.avatar = user.avatar || googleUser.avatar || null
+      user.name = user.name || googleUser.name
+      await user.save()
+    }
+  }
+
+  const { accessToken, refreshToken, expiresAt } = await issueTokenPair(user)
+
+  setRefreshCookie(res, refreshToken, expiresAt)
+
+  res.status(200).json(new ApiResponse(200, { user, accessToken }, 'Google login successful'))
 })
 
 export const refresh = asyncHandler(async (req, res) => {

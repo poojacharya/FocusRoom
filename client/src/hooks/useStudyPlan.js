@@ -10,6 +10,13 @@ import { showErrorToast, showSuccessToast } from '../lib/toast'
 
 const STUDY_PLAN_KEY = ['studyPlan']
 
+function getMutationErrorMessage(error) {
+  const details = error?.response?.data?.details
+  if (Array.isArray(details) && details.length) return details.join('; ')
+  if (typeof details === 'string' && details) return details
+  return error?.response?.data?.message || 'Something went wrong'
+}
+
 // Resolves to `null` (not an error) when no plan has been created yet —
 // see the 404 handling in lib/api/studyPlan.api.js.
 export function useStudyPlanQuery() {
@@ -28,7 +35,7 @@ export function useCreateStudyPlan() {
       queryClient.setQueryData(STUDY_PLAN_KEY, plan)
       showSuccessToast('Study plan saved')
     },
-    onError: (error) => showErrorToast(error?.response?.data?.message || "Couldn't save your study plan"),
+    onError: (error) => showErrorToast(getMutationErrorMessage(error) || "Couldn't save your study plan"),
   })
 }
 
@@ -40,7 +47,7 @@ export function useUpdateStudyPlan() {
       queryClient.setQueryData(STUDY_PLAN_KEY, plan)
       showSuccessToast('Study plan saved')
     },
-    onError: (error) => showErrorToast(error?.response?.data?.message || "Couldn't save your study plan"),
+    onError: (error) => showErrorToast(getMutationErrorMessage(error) || "Couldn't save your study plan"),
   })
 }
 
@@ -55,7 +62,7 @@ export function useDeleteStudyPlan() {
       queryClient.setQueryData(STUDY_PLAN_KEY, null)
       showSuccessToast('Study plan deleted')
     },
-    onError: (error) => showErrorToast(error?.response?.data?.message || "Couldn't delete your study plan"),
+    onError: (error) => showErrorToast(getMutationErrorMessage(error) || "Couldn't delete your study plan"),
   })
 }
 
@@ -74,6 +81,6 @@ export function useGenerateStudySchedule() {
       showSuccessToast('Study schedule generated')
     },
     onError: (error) =>
-      showErrorToast(error?.response?.data?.message || "Couldn't generate a study schedule right now"),
+      showErrorToast(getMutationErrorMessage(error) || "Couldn't generate a study schedule right now"),
   })
 }

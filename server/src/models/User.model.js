@@ -52,9 +52,18 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
       minlength: [8, 'Password must be at least 8 characters'],
       select: false,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+    avatar: {
+      type: String,
+      default: null,
     },
     // Rotating refresh-token hashes. select:false keeps them out of normal
     // queries; controllers that need to read them opt in with
@@ -70,12 +79,13 @@ const userSchema = new mongoose.Schema(
 )
 
 userSchema.pre('save', async function hashPassword(next) {
-  if (!this.isModified('password')) return next()
+  if (!this.isModified('password') || !this.password) return next()
   this.password = await bcrypt.hash(this.password, SALT_ROUNDS)
   next()
 })
 
 userSchema.methods.comparePassword = function comparePassword(candidatePassword) {
+  if (!this.password) return false
   return bcrypt.compare(candidatePassword, this.password)
 }
 
