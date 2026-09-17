@@ -1,4 +1,3 @@
-import { Analytics } from "@vercel/analytics/next"
 import { PageContainer } from '../components/ui/PageContainer'
 import { SectionHeader } from '../components/ui/SectionHeader'
 import { Card } from '../components/ui/Card'
