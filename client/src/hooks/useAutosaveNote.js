@@ -10,12 +10,14 @@ import { useUpdateNote } from './useNotes'
 export function useAutosaveNote(note) {
   const [title, setTitle] = useState(note?.title ?? '')
   const [body, setBody] = useState(note?.body ?? '')
+  const [documents, setDocuments] = useState(note?.documents ?? [])
   const [status, setStatus] = useState('saved') // 'saved' | 'saving' | 'error'
-  const lastSavedRef = useRef({ title: note?.title ?? '', body: note?.body ?? '' })
+  const lastSavedRef = useRef({ title: note?.title ?? '', body: note?.body ?? '', documents: note?.documents ?? [] })
   const updateNote = useUpdateNote()
 
   const debouncedTitle = useDebouncedValue(title, 700)
   const debouncedBody = useDebouncedValue(body, 700)
+  const debouncedDocuments = useDebouncedValue(documents, 700)
 
   // Switching to a different note resets the draft to *that* note's saved
   // values — otherwise the previous note's in-progress text would bleed
@@ -23,21 +25,27 @@ export function useAutosaveNote(note) {
   useEffect(() => {
     setTitle(note?.title ?? '')
     setBody(note?.body ?? '')
-    lastSavedRef.current = { title: note?.title ?? '', body: note?.body ?? '' }
+    setDocuments(note?.documents ?? [])
+    lastSavedRef.current = { title: note?.title ?? '', body: note?.body ?? '', documents: note?.documents ?? [] }
     setStatus('saved')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note?._id])
 
-  const save = (nextTitle, nextBody) => {
+  const save = (nextTitle, nextBody, nextDocuments) => {
     if (!note) return
-    if (nextTitle === lastSavedRef.current.title && nextBody === lastSavedRef.current.body) return
+    const sameAsLastSaved =
+      nextTitle === lastSavedRef.current.title &&
+      nextBody === lastSavedRef.current.body &&
+      JSON.stringify(nextDocuments) === JSON.stringify(lastSavedRef.current.documents)
+
+    if (sameAsLastSaved) return
 
     setStatus('saving')
     updateNote.mutate(
-      { id: note._id, title: nextTitle, body: nextBody },
+      { id: note._id, title: nextTitle, body: nextBody, documents: nextDocuments },
       {
         onSuccess: () => {
-          lastSavedRef.current = { title: nextTitle, body: nextBody }
+          lastSavedRef.current = { title: nextTitle, body: nextBody, documents: nextDocuments }
           setStatus('saved')
         },
         onError: () => setStatus('error'),
@@ -46,16 +54,18 @@ export function useAutosaveNote(note) {
   }
 
   useEffect(() => {
-    save(debouncedTitle, debouncedBody)
+    save(debouncedTitle, debouncedBody, debouncedDocuments)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedTitle, debouncedBody, note?._id])
+  }, [debouncedTitle, debouncedBody, debouncedDocuments, note?._id])
 
   return {
     title,
     setTitle,
     body,
     setBody,
+    documents,
+    setDocuments,
     status,
-    retry: () => save(title, body),
+    retry: () => save(title, body, documents),
   }
 }

@@ -39,7 +39,9 @@ export function NotificationBell() {
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-500" />
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-semibold text-white">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
         )}
       </button>
       {isOpen && (

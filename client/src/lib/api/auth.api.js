@@ -15,6 +15,11 @@ export async function googleLoginUser({ credential }) {
   return data.data // { user, accessToken }
 }
 
+export async function updateCurrentUserProfile(updates) {
+  const { data } = await api.patch('/auth/me', updates)
+  return data.data // { user }
+}
+
 export async function logoutUser() {
   const { data } = await api.post('/auth/logout')
   return data.data

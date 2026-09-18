@@ -4,11 +4,17 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import routes from './routes/index.js'
 import { notFound } from './middleware/notFound.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { sanitizeMongoInput } from './middleware/sanitizeMongoInput.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const clientDistPath = path.resolve(__dirname, '../../client/dist')
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -57,6 +63,17 @@ export function createApp() {
 
   // --- Routes ---
   app.use('/api', routes)
+
+  // Serve the built Vite client for any non-API route when the app is
+  // deployed as a single origin behind Express. This prevents reloads on
+  // pages like /friends or /study-room from falling through to Express 404s.
+  if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(clientDistPath))
+    app.get(/^(?!\/api).*/, (req, res, next) => {
+      if (req.path.startsWith('/socket.io')) return next()
+      res.sendFile(path.join(clientDistPath, 'index.html'))
+    })
+  }
 
   // --- 404 + error handling (must be last) ---
   app.use(notFound)

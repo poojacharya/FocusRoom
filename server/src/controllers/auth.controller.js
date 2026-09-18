@@ -202,6 +202,26 @@ export const refresh = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, { accessToken }, 'Token refreshed'))
 })
 
+export const updateProfile = asyncHandler(async (req, res) => {
+  const { name, avatar } = req.body || {}
+  const updates = {}
+
+  if (typeof name === 'string') {
+    const trimmedName = name.trim()
+    if (!trimmedName) throw new ApiError(400, 'Name cannot be empty')
+    updates.name = trimmedName
+  }
+
+  if (avatar !== undefined) {
+    updates.avatar = avatar === null || avatar === '' ? null : String(avatar)
+  }
+
+  const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true })
+  if (!user) throw new ApiError(404, 'User not found')
+
+  res.status(200).json(new ApiResponse(200, { user }, 'Profile updated successfully'))
+})
+
 export const logout = asyncHandler(async (req, res) => {
   const token = req.cookies?.[REFRESH_COOKIE_NAME]
 

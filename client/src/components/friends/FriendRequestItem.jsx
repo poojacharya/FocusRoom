@@ -6,7 +6,7 @@ export function FriendRequestItem({ request, onAccept, onReject, isMutating }) {
   return (
     <li className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-white/5">
       <div className="flex min-w-0 items-center gap-3">
-        <Avatar name={request.user.name} />
+        <Avatar name={request.user.name} src={request.user.avatar} />
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{request.user.name}</p>
           <p className="truncate text-xs text-gray-500 dark:text-gray-400">{request.user.email}</p>

@@ -24,10 +24,15 @@ export function PlannerForm({ form, onSubmit, isSaving }) {
           label="Available study hours (per day)"
           type="number"
           min={0}
+          max={24}
           step="0.5"
           placeholder="e.g. 3"
           value={availableStudyHours}
-          onChange={(e) => setAvailableStudyHours(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value
+            const numeric = Number(value)
+            setAvailableStudyHours(Number.isFinite(numeric) ? Math.min(numeric, 24).toString() : value)
+          }}
         />
       </div>
 

@@ -9,7 +9,7 @@ export function FriendListItem({ friend, onRemove, isRemoving }) {
   return (
     <li className="group flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-gray-100 dark:hover:bg-white/5">
       <div className="flex min-w-0 items-center gap-3">
-        <Avatar name={friend.user.name} />
+        <Avatar name={friend.user.name} src={friend.user.avatar} />
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{friend.user.name}</p>
           <p className="truncate text-xs text-gray-500 dark:text-gray-400">{friend.user.email}</p>

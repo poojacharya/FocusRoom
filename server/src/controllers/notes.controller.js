@@ -9,8 +9,19 @@ export const listNotes = asyncHandler(async (req, res) => {
 })
 
 export const createNote = asyncHandler(async (req, res) => {
-  const { title = '', body = '' } = req.body
-  const note = await Note.create({ owner: req.user._id, title, body })
+  const { title = '', body = '', documents = [] } = req.body
+  const normalizedDocuments = Array.isArray(documents)
+    ? documents
+        .filter((doc) => doc && typeof doc === 'object')
+        .map((doc) => ({
+          title: typeof doc.title === 'string' ? doc.title.trim() : '',
+          url: typeof doc.url === 'string' ? doc.url.trim() : '',
+          createdAt: doc.createdAt || new Date().toISOString(),
+        }))
+        .filter((doc) => doc.title || doc.url)
+    : []
+
+  const note = await Note.create({ owner: req.user._id, title, body, documents: normalizedDocuments })
   res.status(201).json(new ApiResponse(201, note, 'Note created'))
 })
 
@@ -21,10 +32,22 @@ export const getNote = asyncHandler(async (req, res) => {
 })
 
 export const updateNote = asyncHandler(async (req, res) => {
-  const { title, body } = req.body
+  const { title, body, documents } = req.body
   const update = {}
   if (title !== undefined) update.title = title
   if (body !== undefined) update.body = body
+  if (documents !== undefined) {
+    update.documents = Array.isArray(documents)
+      ? documents
+          .filter((doc) => doc && typeof doc === 'object')
+          .map((doc) => ({
+            title: typeof doc.title === 'string' ? doc.title.trim() : '',
+            url: typeof doc.url === 'string' ? doc.url.trim() : '',
+            createdAt: doc.createdAt || new Date().toISOString(),
+          }))
+          .filter((doc) => doc.title || doc.url)
+      : []
+  }
 
   const note = await Note.findOneAndUpdate(
     { _id: req.params.id, owner: req.user._id },

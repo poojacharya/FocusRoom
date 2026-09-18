@@ -1,5 +1,25 @@
 import mongoose from 'mongoose'
 
+const noteDocumentSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    url: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false },
+)
+
 const noteSchema = new mongoose.Schema(
   {
     owner: {
@@ -16,6 +36,10 @@ const noteSchema = new mongoose.Schema(
     body: {
       type: String,
       default: '',
+    },
+    documents: {
+      type: [noteDocumentSchema],
+      default: [],
     },
   },
   { timestamps: true },

@@ -132,7 +132,7 @@ export function TaskFormModal({ isOpen, task, onSubmit, onClose, isSubmitting })
                     id="task-priority"
                     value={draft.priority}
                     onChange={(e) => setDraft((d) => ({ ...d, priority: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 bg-white/60 px-3 py-2.5 text-sm capitalize text-gray-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/50 dark:border-white/10 dark:bg-white/5 dark:text-gray-100"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm capitalize text-gray-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/50 dark:border-white/10 dark:bg-slate-900 dark:text-gray-100"
                   >
                     {PRIORITY_OPTIONS.map((value) => (
                       <option key={value} value={value}>

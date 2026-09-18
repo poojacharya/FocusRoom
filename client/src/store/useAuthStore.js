@@ -35,11 +35,16 @@ export const useAuthStore = create((set) => ({
   setAccessToken: (accessToken) => set({ accessToken }),
 
   setAuth: ({ user, accessToken, remember }) => {
-    set({ user, accessToken, isAuthenticated: true })
+    set({ user, accessToken, isAuthenticated: true, isInitializing: false })
+
     if (remember) {
       localStorage.setItem(REMEMBER_KEY, 'true')
       cacheUser(user)
+      return
     }
+
+    localStorage.removeItem(REMEMBER_KEY)
+    localStorage.removeItem(CACHED_USER_KEY)
   },
 
   updateUserProfile: (updates) => {
@@ -50,7 +55,7 @@ export const useAuthStore = create((set) => ({
     })
   },
 
-  restoreSession: (accessToken) => set({ accessToken, isAuthenticated: true }),
+  restoreSession: (accessToken) => set({ accessToken, isAuthenticated: true, isInitializing: false }),
 
   hydrateFromCache: () => {
     const cached = readCachedUser()

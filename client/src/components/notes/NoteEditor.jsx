@@ -14,6 +14,7 @@ import {
   ListOrdered,
   Trash2,
   Underline,
+  Upload,
 } from 'lucide-react'
 import { useAutosaveNote } from '../../hooks/useAutosaveNote'
 import { SaveStatusIndicator } from './SaveStatusIndicator'
@@ -79,9 +80,10 @@ function ToolbarButton({ label, onClick, children }) {
 }
 
 export function NoteEditor({ note, onDelete, isDeleting }) {
-  const { title, setTitle, body, setBody, status, retry } = useAutosaveNote(note)
+  const { title, setTitle, body, setBody, documents, setDocuments, status, retry } = useAutosaveNote(note)
   const titleRef = useRef(null)
   const editorRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   // Auto-focus the title on a brand-new (empty-title) note so typing works
   // immediately. Switching to an existing note doesn't steal focus — the
@@ -123,6 +125,40 @@ export function NoteEditor({ note, onDelete, isDeleting }) {
     const url = window.prompt('Enter a link URL')?.trim()
     if (!url || !isSafeLink(url)) return
     applyCommand('createLink', url)
+  }
+
+  const addDocument = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileUpload = async (event) => {
+    const files = Array.from(event.target.files || [])
+    if (!files.length) return
+
+    const uploadedDocuments = await Promise.all(
+      files.map(
+        (file) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => {
+              resolve({
+                title: file.name || 'Uploaded document',
+                url: typeof reader.result === 'string' ? reader.result : '',
+                createdAt: new Date().toISOString(),
+              })
+            }
+            reader.onerror = () => reject(new Error(`Could not read ${file.name}`))
+            reader.readAsDataURL(file)
+          }),
+      ),
+    )
+
+    setDocuments((current) => [...current, ...uploadedDocuments])
+    event.target.value = ''
+  }
+
+  const removeDocument = (index) => {
+    setDocuments((current) => current.filter((_, itemIndex) => itemIndex !== index))
   }
 
   if (!note) return null
@@ -172,7 +208,29 @@ export function NoteEditor({ note, onDelete, isDeleting }) {
           <ToolbarButton label="Justify text" onClick={() => applyCommand('justifyFull')}><AlignJustify className="h-4 w-4" /></ToolbarButton>
           <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-white/10" />
           <ToolbarButton label="Add link" onClick={addLink}><Link className="h-4 w-4" /></ToolbarButton>
+          <ToolbarButton label="Upload file" onClick={addDocument}><Upload className="h-4 w-4" /></ToolbarButton>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv,.ppt,.pptx,image/*,.zip"
+            multiple
+            onChange={handleFileUpload}
+            className="hidden"
+          />
         </div>
+
+        {documents.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {documents.map((document, index) => (
+              <div key={`${document.title}-${document.url}-${index}`} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-gray-200">
+                <a href={document.url === '#' ? undefined : document.url} target="_blank" rel="noreferrer" className="font-medium text-brand-600 hover:text-brand-500 dark:text-brand-400">
+                  {document.title || 'Untitled document'}
+                </a>
+                <button type="button" aria-label={`Remove ${document.title || 'document'}`} onClick={() => removeDocument(index)} className="text-gray-400 hover:text-red-500">×</button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div
           ref={editorRef}

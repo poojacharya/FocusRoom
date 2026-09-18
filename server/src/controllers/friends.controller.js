@@ -17,7 +17,7 @@ function otherUserOf(doc, currentUserId) {
 }
 
 function toPublicUser(user) {
-  return { _id: user._id, name: user.name, email: user.email }
+  return { _id: user._id, name: user.name, email: user.email, avatar: user.avatar || null }
 }
 
 export const searchUsers = asyncHandler(async (req, res) => {
@@ -31,7 +31,7 @@ export const searchUsers = asyncHandler(async (req, res) => {
     _id: { $ne: req.user._id },
     $or: [{ name: regex }, { email: regex }],
   })
-    .select('name email')
+    .select('name email avatar')
     .limit(SEARCH_RESULT_LIMIT)
 
   if (users.length === 0) {
@@ -81,8 +81,8 @@ export const listFriends = asyncHandler(async (req, res) => {
     status: 'accepted',
     $or: [{ userA: req.user._id }, { userB: req.user._id }],
   })
-    .populate('userA', 'name email')
-    .populate('userB', 'name email')
+    .populate('userA', 'name email avatar')
+    .populate('userB', 'name email avatar')
     .sort({ updatedAt: -1 })
 
   const friends = docs.map((doc) => ({
@@ -100,8 +100,8 @@ export const listIncomingRequests = asyncHandler(async (req, res) => {
     requestedBy: { $ne: req.user._id },
     $or: [{ userA: req.user._id }, { userB: req.user._id }],
   })
-    .populate('userA', 'name email')
-    .populate('userB', 'name email')
+    .populate('userA', 'name email avatar')
+    .populate('userB', 'name email avatar')
     .sort({ createdAt: -1 })
 
   const requests = docs.map((doc) => ({
@@ -119,8 +119,8 @@ export const listSentRequests = asyncHandler(async (req, res) => {
     requestedBy: req.user._id,
     $or: [{ userA: req.user._id }, { userB: req.user._id }],
   })
-    .populate('userA', 'name email')
-    .populate('userB', 'name email')
+    .populate('userA', 'name email avatar')
+    .populate('userB', 'name email avatar')
     .sort({ createdAt: -1 })
 
   const requests = docs.map((doc) => ({

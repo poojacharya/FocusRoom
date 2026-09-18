@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bell, Check, Clock3, MoonStar, Sparkles, Upload } from 'lucide-react'
+import { MoonStar, Upload } from 'lucide-react'
 import { PageContainer } from '../components/ui/PageContainer'
 import { Card } from '../components/ui/Card'
 import { SectionHeader } from '../components/ui/SectionHeader'
@@ -9,38 +9,7 @@ import { DEFAULT_SETTINGS, getStoredSettings, persistSettings } from '../lib/set
 import { useAppStore } from '../store/useAppStore'
 import { useAuthStore } from '../store/useAuthStore'
 import { Avatar } from '../components/ui/Avatar'
-
-function ToggleRow({ label, description, checked, onChange, icon: Icon }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-gray-200 p-4 dark:border-white/10">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">
-          <Icon className="h-4 w-4" />
-        </div>
-        <div>
-          <p className="font-medium text-gray-900 dark:text-gray-100">{label}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={onChange}
-        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-          checked ? 'bg-brand-500' : 'bg-gray-300 dark:bg-white/15'
-        }`}
-      >
-        <span
-          className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-            checked ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </button>
-    </div>
-  )
-}
+import { updateCurrentUserProfile } from '../lib/api/auth.api'
 
 export default function Settings() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
@@ -70,10 +39,6 @@ export default function Settings() {
     }))
   }
 
-  const toggle = (key) => {
-    setSettings((current) => ({ ...current, [key]: !current[key] }))
-  }
-
   const resetToDefaults = () => {
     setSettings(DEFAULT_SETTINGS)
   }
@@ -85,21 +50,33 @@ export default function Settings() {
     const reader = new FileReader()
     reader.onload = () => {
       const nextAvatar = typeof reader.result === 'string' ? reader.result : ''
-      updateUserProfile({ avatar: nextAvatar })
       setAvatarUrl(nextAvatar)
+      updateUserProfile({ avatar: nextAvatar })
+      updateCurrentUserProfile({ avatar: nextAvatar }).catch(() => {})
     }
     reader.readAsDataURL(file)
     event.target.value = ''
   }
 
-  const applyAvatarUrl = () => {
+  const applyAvatarUrl = async () => {
     if (!avatarUrl.trim()) {
       updateUserProfile({ avatar: null })
       setAvatarUrl('')
+      try {
+        await updateCurrentUserProfile({ avatar: null })
+      } catch {
+        // keep local state even if the API is unavailable
+      }
       return
     }
 
-    updateUserProfile({ avatar: avatarUrl.trim() })
+    const nextAvatar = avatarUrl.trim()
+    updateUserProfile({ avatar: nextAvatar })
+    try {
+      await updateCurrentUserProfile({ avatar: nextAvatar })
+    } catch {
+      // keep local state even if the API is unavailable
+    }
   }
 
   return (
@@ -162,42 +139,12 @@ export default function Settings() {
                   label="Default planner hours/day"
                   type="number"
                   min={0}
+                  max={24}
                   step={0.5}
                   value={settings.plannerDefaultHours}
                   onChange={(event) => updateNumber('plannerDefaultHours', event.target.value)}
                 />
               </div>
-            </div>
-
-            <div className="space-y-3">
-              <ToggleRow
-                label="Daily recap"
-                description="Get a quick summary of your study progress each day."
-                checked={settings.dailyRecap}
-                onChange={() => toggle('dailyRecap')}
-                icon={Check}
-              />
-              <ToggleRow
-                label="Task reminders"
-                description="Show nudges for upcoming deadlines and task check-ins."
-                checked={settings.taskReminders}
-                onChange={() => toggle('taskReminders')}
-                icon={Bell}
-              />
-              <ToggleRow
-                label="Auto-start focus sessions"
-                description="Open your timer and begin immediately after a new session starts."
-                checked={settings.autoStartFocus}
-                onChange={() => toggle('autoStartFocus')}
-                icon={Clock3}
-              />
-              <ToggleRow
-                label="Compact planner layout"
-                description="Reduce the spacing in the planner so more of the week fits on screen."
-                checked={settings.compactPlanner}
-                onChange={() => toggle('compactPlanner')}
-                icon={Sparkles}
-              />
             </div>
           </div>
         </Card>

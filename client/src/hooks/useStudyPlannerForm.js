@@ -20,6 +20,13 @@ function subjectsFromPlan(plan) {
 export function useStudyPlannerForm(plan, isPlanLoading) {
   const [examDate, setExamDate] = useState('')
   const [availableStudyHours, setAvailableStudyHours] = useState('')
+
+  const sanitizeHours = (value) => {
+    if (value === '') return ''
+    const numeric = Number(value)
+    if (!Number.isFinite(numeric)) return value
+    return String(Math.min(Math.max(numeric, 0), 24))
+  }
   const [subjects, setSubjects] = useState(() => subjectsFromPlan(null))
   const [hasHydrated, setHasHydrated] = useState(false)
 
@@ -34,6 +41,10 @@ export function useStudyPlannerForm(plan, isPlanLoading) {
   const addSubject = () =>
     setSubjects((rows) => [...rows, { localId: nextLocalId(), name: '', topics: '' }])
 
+  const handleAvailableStudyHoursChange = (value) => {
+    setAvailableStudyHours(sanitizeHours(value))
+  }
+
   const removeSubject = (localId) =>
     setSubjects((rows) => (rows.length > 1 ? rows.filter((row) => row.localId !== localId) : rows))
 
@@ -44,7 +55,8 @@ export function useStudyPlannerForm(plan, isPlanLoading) {
     const validSubjectCount = subjects.filter((row) => row.name.trim()).length
     const numericHours = Number(availableStudyHours)
     const isDateValid = !examDate || !Number.isNaN(new Date(examDate).getTime())
-    const isHoursValid = availableStudyHours === '' || (Number.isFinite(numericHours) && numericHours >= 0)
+    const isHoursValid =
+      availableStudyHours === '' || (Number.isFinite(numericHours) && numericHours >= 0 && numericHours <= 24)
     const canSubmit = isDateValid && isHoursValid && validSubjectCount > 0 && examDate
 
     if (!examDate && !availableStudyHours && validSubjectCount === 0) {
@@ -56,7 +68,7 @@ export function useStudyPlannerForm(plan, isPlanLoading) {
     }
 
     if (!isHoursValid || numericHours < 0.5) {
-      return { canSubmit: false, summary: 'Set a realistic daily study time of at least 0.5 hours.' }
+      return { canSubmit: false, summary: 'Set a realistic daily study time between 0.5 and 24 hours.' }
     }
 
     if (validSubjectCount === 0) {
@@ -84,7 +96,7 @@ export function useStudyPlannerForm(plan, isPlanLoading) {
     examDate,
     setExamDate,
     availableStudyHours,
-    setAvailableStudyHours,
+    setAvailableStudyHours: handleAvailableStudyHoursChange,
     subjects,
     addSubject,
     removeSubject,
