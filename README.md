@@ -315,7 +315,7 @@ FocusRoom is being developed incrementally.
 
 ## 📌 Project Status
 
-FocusRoom is an actively developed full-stack project.
+FocusRoom is an actively developing full-stack project.
 
 The application is being built feature-by-feature with an emphasis on:
 
@@ -330,6 +330,6 @@ The application is being built feature-by-feature with an emphasis on:
 
 ## 👩‍💻 Author
 
-**Pooja Charya**
+**Pooja Acharya**
 
 Built as a full-stack development project to explore modern web development, real-time applications, authentication, productivity systems, and AI-assisted planning.
