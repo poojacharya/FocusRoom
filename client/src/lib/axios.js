@@ -3,7 +3,12 @@ import { useAuthStore } from '../store/useAuthStore'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-  : '/api'
+  : '/api';
+
+console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
+console.log("apiBaseUrl:", apiBaseUrl);
+
+
 
 export const api = axios.create({
   baseURL: apiBaseUrl,
