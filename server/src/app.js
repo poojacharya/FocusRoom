@@ -64,13 +64,14 @@ export function createApp() {
   // --- Routes ---
   app.use('/api', routes)
 
-  // Serve the built Vite client for any non-API route when the app is
-  // deployed as a single origin behind Express. This prevents reloads on
-  // pages like /friends or /study-room from falling through to Express 404s.
+  // Serve the built Vite client for any GET request that doesn't target
+  // the API or Socket.IO. This prevents browser reloads on routes like
+  // /friends or /study-room from falling through to Express 404s.
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(clientDistPath))
     app.get(/^(?!\/api).*/, (req, res, next) => {
       if (req.path.startsWith('/socket.io')) return next()
+      if (req.path.includes('.') || req.method !== 'GET') return next()
       res.sendFile(path.join(clientDistPath, 'index.html'))
     })
   }

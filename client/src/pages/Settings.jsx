@@ -165,14 +165,20 @@ export default function Settings() {
                 </div>
               </div>
 
-              <Button
+              <button
                 type="button"
-                variant="secondary"
-                fullWidth={false}
+                aria-label="Toggle dark mode"
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full border transition-colors ${
+                  theme === 'dark' ? 'border-brand-500 bg-brand-500' : 'border-gray-300 bg-gray-200 dark:border-white/10 dark:bg-white/10'
+                }`}
               >
-                {theme === 'dark' ? 'Light' : 'Dark'}
-              </Button>
+                <span
+                  className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                    theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
 
             <Button type="button" variant="secondary" onClick={resetToDefaults}>

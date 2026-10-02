@@ -32,8 +32,23 @@ function getSocket() {
 
 export function connectSocket() {
   const socket = getSocket()
+  const token = useAuthStore.getState().accessToken
+
+  if (token) {
+    socket.auth = { token }
+  }
+
   if (!socket.connected) {
     socket.connect()
   }
+
+  socket.on('connect_error', () => {
+    const latestToken = useAuthStore.getState().accessToken
+    if (latestToken && socket.disconnected) {
+      socket.auth = { token: latestToken }
+      socket.connect()
+    }
+  })
+
   return socket
 }

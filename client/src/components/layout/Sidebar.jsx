@@ -7,6 +7,7 @@ import { Logo } from '../ui/Logo'
 import { useUIStore } from '../../store/useUIStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { logoutUser } from '../../lib/api/auth.api'
+import { useNotifications } from '../../hooks/useNotifications'
 
 /**
  * Rendered in two places: statically inside DashboardLayout for desktop,
@@ -23,6 +24,8 @@ export function Sidebar({ onNavigate, collapsed, showCollapseToggle = true }) {
   const user = useAuthStore((s) => s.user)
   const clearAuth = useAuthStore((s) => s.clearAuth)
   const navigate = useNavigate()
+  const { data: notifications } = useNotifications()
+  const incomingRequestCount = notifications?.unreadCount ?? 0
 
   const handleLogout = async () => {
     try {
@@ -77,7 +80,16 @@ export function Sidebar({ onNavigate, collapsed, showCollapseToggle = true }) {
             }
           >
             <Icon className="h-5 w-5 shrink-0" />
-            {!isCollapsed && <span className="truncate">{label}</span>}
+            {!isCollapsed && (
+              <span className="flex flex-1 items-center justify-between gap-2 truncate">
+                <span className="truncate">{label}</span>
+                {path === '/friends' && incomingRequestCount > 0 && (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-semibold text-white">
+                    {incomingRequestCount > 9 ? '9+' : incomingRequestCount}
+                  </span>
+                )}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

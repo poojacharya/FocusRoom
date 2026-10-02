@@ -43,7 +43,7 @@ export const useAuthStore = create((set) => ({
       return
     }
 
-    localStorage.removeItem(REMEMBER_KEY)
+    localStorage.setItem(REMEMBER_KEY, 'false')
     localStorage.removeItem(CACHED_USER_KEY)
   },
 

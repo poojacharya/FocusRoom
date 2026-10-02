@@ -41,6 +41,10 @@ export function useAuthInit() {
           const { accessToken } = await refreshAccessToken()
           if (!cancelled) {
             useAuthStore.getState().restoreSession(accessToken)
+            const cachedUser = JSON.parse(localStorage.getItem('focusroom_cached_user') || 'null')
+            if (cachedUser) {
+              useAuthStore.getState().setState({ user: cachedUser })
+            }
           }
         } catch {
           if (!cancelled) {

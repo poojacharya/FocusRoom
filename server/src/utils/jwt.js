@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
 const ACCESS_TOKEN_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || '15m'
-const REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d'
+const REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '10d'
 
 function getAccessSecret() {
   const secret = process.env.JWT_ACCESS_SECRET

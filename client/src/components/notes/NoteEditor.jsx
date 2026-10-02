@@ -131,10 +131,7 @@ export function NoteEditor({ note, onDelete, isDeleting }) {
     fileInputRef.current?.click()
   }
 
-  const handleFileUpload = async (event) => {
-    const files = Array.from(event.target.files || [])
-    if (!files.length) return
-
+  const attachUploadedFiles = async (files) => {
     const uploadedDocuments = await Promise.all(
       files.map(
         (file) =>
@@ -154,7 +151,22 @@ export function NoteEditor({ note, onDelete, isDeleting }) {
     )
 
     setDocuments((current) => [...current, ...uploadedDocuments])
+  }
+
+  const handleFileUpload = async (event) => {
+    const files = Array.from(event.target.files || [])
+    if (!files.length) return
+
+    await attachUploadedFiles(files)
     event.target.value = ''
+  }
+
+  const handlePaste = async (event) => {
+    const pastedFiles = Array.from(event.clipboardData?.files || [])
+    if (!pastedFiles.length) return
+
+    event.preventDefault()
+    await attachUploadedFiles(pastedFiles)
   }
 
   const removeDocument = (index) => {
@@ -240,6 +252,7 @@ export function NoteEditor({ note, onDelete, isDeleting }) {
           aria-multiline="true"
           data-placeholder="Start writing."
           onInput={updateBodyFromEditor}
+          onPaste={handlePaste}
           className="mt-3 min-h-64 flex-1 whitespace-pre-wrap break-words bg-transparent text-base leading-relaxed text-gray-700 outline-none empty:before:pointer-events-none empty:before:text-gray-300 empty:before:content-[attr(data-placeholder)] dark:text-gray-200 dark:empty:before:text-gray-600 [&_a]:text-brand-600 [&_a]:underline dark:[&_a]:text-brand-400 [&_h1]:my-3 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:my-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:my-2 [&_h3]:text-lg [&_h3]:font-semibold [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6"
         />
       </div>

@@ -32,6 +32,8 @@ Respond with ONLY valid JSON — no markdown code fences, no commentary before o
           "title": "<short block name>",
           "duration": <integer, minutes>,
           "subject": "<subject name>",
+          "location": "<where the student should study, e.g. library, desk, quiet room>",
+          "method": "<how the student should study the topic, e.g. active recall, practice questions, spaced repetition>",
           "goal": "<clear learning outcome for that block, with a concrete action and result>"
         }
       ],
@@ -48,7 +50,7 @@ Respond with ONLY valid JSON — no markdown code fences, no commentary before o
   ]
 }
 
-Create a detailed but realistic plan: give each day 2-4 focus blocks with a useful title, duration, subject, and goal. Every goal must explain an action and the intended result, not just the topic name. Spread the workload across subjects proportionally to the number of topics and difficulty, and keep each day under the available hours. Prefer a sensible cadence over listing every single day for long gaps, but do include enough detail that the student understands what to do each day. Make the plan feel practical: explain the steps, highlight what to review, practice, or memorize, and include small checkpoints. If no subjects are provided, return an empty "days" array and explain why in "summary". Never include any text outside the JSON object.`
+Create a highly detailed but realistic plan: give each day 2-4 focus blocks with a useful title, duration, subject, location, method, and goal. Every block must explain exactly what to study, how to study it, where to do it, and what success looks like. For example, a goal should say: 'Review the oxidation-reduction reactions from class notes and complete 6 timed questions to build recall before the next practice set.' Mention active recall, practice problems, flashcards, summaries, and spaced review as appropriate. Spread the workload across subjects proportionally to the number of topics and difficulty, and keep each day under the available hours. Prefer a sensible cadence over listing every single day for long gaps, but include enough detail that the student knows the exact plan for each day. Include a realistic study location such as a desk, library, classroom, or quiet room, and a method such as active recall, practice questions, teaching out loud, or chapter review. If no subjects are provided, return an empty "days" array and explain why in "summary". Never include any text outside the JSON object.`
 
 function buildPrompt({ examDate, subjects, availableStudyHours }) {
   const today = new Date().toISOString().slice(0, 10)
@@ -72,9 +74,9 @@ Available study hours per day: ${hoursPerDay}
 Subjects and topics:
 ${subjectLines}
 
-Build a realistic, detailed day-by-day study schedule from today until the exam date (inclusive of today, excluding the exam date itself, which should be left free for rest/review). Distribute time across subjects roughly proportional to how many topics each has and their difficulty. Group related topics on the same day where sensible rather than scattering single topics across many days.
+Build a realistic, highly detailed day-by-day study schedule from today until the exam date (inclusive of today, excluding the exam date itself, which should be left free for rest/review). Distribute time across subjects roughly proportional to how many topics each has and their difficulty. Group related topics on the same day where sensible rather than scattering single topics across many days.
 
-For every planned day, include 2-4 focus blocks with a clear title, minutes, subject, and goal. Every block goal must explain a specific action, the topic area, and the outcome. Example: "Review the oxidation-reduction reactions from class notes and complete 6 practice questions to build confidence before timed recall." Include a short subject-level goal for each subject worked that day, and a final encouraging sentence plus a one-line checkpoint reminder. Keep each day's total hours at or under the available hours per day. If the gap between today and the exam date is very large, favor a sensible study cadence over listing every single day past a reasonable planning horizon (cap around ${MAX_SCHEDULE_DAYS} days).`
+For every planned day, include 2-4 focus blocks with a clear title, minutes, subject, location, method, and goal. Each block must state what to study, how to study it, where to study it, and what concrete outcome to aim for. Example: "Review the oxidation-reduction reactions from class notes, then complete 6 timed practice questions in a quiet desk session to improve recall and accuracy before the next mixed quiz." Include a short subject-level goal for each subject worked that day, and a final encouraging sentence plus a one-line checkpoint reminder. Keep each day's total hours at or under the available hours per day. If the gap is large, favor a sensible study cadence over listing every single day past a reasonable planning horizon (cap around ${MAX_SCHEDULE_DAYS} days).`
 }
 
 function extractJson(text) {
