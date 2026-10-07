@@ -16,6 +16,7 @@ export const createNote = asyncHandler(async (req, res) => {
         .map((doc) => ({
           title: typeof doc.title === 'string' ? doc.title.trim() : '',
           url: typeof doc.url === 'string' ? doc.url.trim() : '',
+          type: typeof doc.type === 'string' ? doc.type.trim() : '',
           createdAt: doc.createdAt || new Date().toISOString(),
         }))
         .filter((doc) => doc.title || doc.url)
@@ -43,6 +44,7 @@ export const updateNote = asyncHandler(async (req, res) => {
           .map((doc) => ({
             title: typeof doc.title === 'string' ? doc.title.trim() : '',
             url: typeof doc.url === 'string' ? doc.url.trim() : '',
+            type: typeof doc.type === 'string' ? doc.type.trim() : '',
             createdAt: doc.createdAt || new Date().toISOString(),
           }))
           .filter((doc) => doc.title || doc.url)

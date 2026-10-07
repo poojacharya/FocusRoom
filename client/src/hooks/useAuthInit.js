@@ -12,8 +12,8 @@ let refreshHydrationPromise = null
  * land in the logged-out state and the route guards take it from there.
  *
  * React 18 StrictMode can trigger the same effect twice during a single page
- * refresh, so we dedupe the hydration with a module-level promise guard to avoid
- * rotating the same refresh cookie twice and accidentally logging the user out.
+ * refresh, so both effects share the refresh request and independently hydrate
+ * the store if they are still mounted when it completes.
  */
 export function useAuthInit() {
   useEffect(() => {
@@ -25,42 +25,26 @@ export function useAuthInit() {
         return
       }
 
-      if (refreshHydrationPromise) {
-        try {
-          await refreshHydrationPromise
-        } catch {
-          // The shared refresh has already failed and cleared the session.
-        }
-        return
-      }
-
       useAuthStore.getState().hydrateFromCache()
 
-      refreshHydrationPromise = (async () => {
-        try {
-          const { accessToken } = await refreshAccessToken()
-          if (!cancelled) {
-            useAuthStore.getState().restoreSession(accessToken)
-            const cachedUser = JSON.parse(localStorage.getItem('focusroom_cached_user') || 'null')
-            if (cachedUser) {
-              useAuthStore.getState().setState({ user: cachedUser })
-            }
-          }
-        } catch {
-          if (!cancelled) {
-            useAuthStore.getState().clearAuth()
-          }
-        } finally {
-          if (!cancelled) {
-            useAuthStore.getState().setInitializing(false)
-          }
-        }
-      })()
+      if (!refreshHydrationPromise) {
+        let request
+        request = refreshAccessToken().finally(() => {
+          if (refreshHydrationPromise === request) refreshHydrationPromise = null
+        })
+        refreshHydrationPromise = request
+      }
 
       try {
-        await refreshHydrationPromise
+        const { accessToken } = await refreshHydrationPromise
+        if (cancelled) return
+        useAuthStore.getState().restoreSession(accessToken)
+        const cachedUser = JSON.parse(localStorage.getItem('focusroom_cached_user') || 'null')
+        if (cachedUser) useAuthStore.getState().setState({ user: cachedUser })
+      } catch {
+        if (!cancelled) useAuthStore.getState().clearAuth()
       } finally {
-        refreshHydrationPromise = null
+        if (!cancelled) useAuthStore.getState().setInitializing(false)
       }
     }
 

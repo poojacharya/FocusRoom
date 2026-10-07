@@ -3,7 +3,7 @@ import { Input } from '../ui/Input'
 import { Button } from '../ui/Button'
 import { SubjectTopicsRow } from './SubjectTopicsRow'
 
-export function PlannerForm({ form, onSubmit, isSaving }) {
+export function PlannerForm({ form, onSubmit, isSaving, compact = false }) {
   const {
     examDate,
     setExamDate,
@@ -17,8 +17,8 @@ export function PlannerForm({ form, onSubmit, isSaving }) {
   } = form
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-5">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <form onSubmit={onSubmit} noValidate className={compact ? 'space-y-3' : 'space-y-5'}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${compact ? 'gap-3' : 'gap-4'}`}>
         <Input label="Exam date" type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} />
         <Input
           label="Available study hours (per day)"
@@ -62,7 +62,7 @@ export function PlannerForm({ form, onSubmit, isSaving }) {
           </Button>
         </div>
 
-        <div className="space-y-3">
+        <div className={compact ? 'space-y-2' : 'space-y-3'}>
           {subjects.map((subject) => (
             <SubjectTopicsRow
               key={subject.localId}

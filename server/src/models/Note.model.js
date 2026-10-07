@@ -12,6 +12,11 @@ const noteDocumentSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    type: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     createdAt: {
       type: Date,
       default: Date.now,

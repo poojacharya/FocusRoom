@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSettingsStore } from '../store/useSettingsStore'
 
 let localIdCounter = 0
 function nextLocalId() {
@@ -20,6 +21,7 @@ function subjectsFromPlan(plan) {
 export function useStudyPlannerForm(plan, isPlanLoading) {
   const [examDate, setExamDate] = useState('')
   const [availableStudyHours, setAvailableStudyHours] = useState('')
+  const plannerDefaultHours = useSettingsStore((s) => s.settings.plannerDefaultHours)
 
   const sanitizeHours = (value) => {
     if (value === '') return ''
@@ -33,10 +35,12 @@ export function useStudyPlannerForm(plan, isPlanLoading) {
   useEffect(() => {
     if (hasHydrated || isPlanLoading) return
     setExamDate(plan?.examDate ? plan.examDate.slice(0, 10) : '')
-    setAvailableStudyHours(plan?.availableStudyHours != null ? String(plan.availableStudyHours) : '')
+    setAvailableStudyHours(
+      plan?.availableStudyHours != null ? String(plan.availableStudyHours) : String(plannerDefaultHours),
+    )
     setSubjects(subjectsFromPlan(plan))
     setHasHydrated(true)
-  }, [plan, isPlanLoading, hasHydrated])
+  }, [plan, isPlanLoading, hasHydrated, plannerDefaultHours])
 
   const addSubject = () =>
     setSubjects((rows) => [...rows, { localId: nextLocalId(), name: '', topics: '' }])

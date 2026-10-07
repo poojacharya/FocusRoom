@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { protect } from '../middleware/auth.js'
 import { validateSendFriendRequest } from '../middleware/validateFriends.js'
+import { listDirectMessages, sendDirectMessage } from '../controllers/directMessages.controller.js'
 import {
   searchUsers,
   listFriends,
@@ -33,6 +34,8 @@ router.get('/search', searchUsers)
 router.post('/requests', validateSendFriendRequest, sendFriendRequest)
 router.patch('/requests/:id/accept', acceptFriendRequest)
 router.patch('/requests/:id/reject', rejectFriendRequest)
+router.get('/:friendId/messages', listDirectMessages)
+router.post('/:friendId/messages', sendDirectMessage)
 router.delete('/:id', removeFriend)
 
 export default router

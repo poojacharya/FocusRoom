@@ -1,5 +1,14 @@
 import mongoose from 'mongoose'
 
+const attachmentSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, maxlength: 255 },
+    type: { type: String, required: true, maxlength: 127 },
+    data: { type: String, required: true },
+  },
+  { _id: false },
+)
+
 const chatMessageSchema = new mongoose.Schema(
   {
     room: {
@@ -14,10 +23,10 @@ const chatMessageSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      required: [true, 'Message content is required'],
-      trim: true,
+      default: '',
       maxlength: 2000,
     },
+    attachments: { type: [attachmentSchema], default: [] },
   },
   // Messages are never edited, so only createdAt is tracked — same
   // pattern as Friend's { createdAt: true } request timestamp.

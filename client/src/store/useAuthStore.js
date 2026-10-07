@@ -72,4 +72,10 @@ export const useAuthStore = create((set) => ({
   setInitializing: (isInitializing) => set({ isInitializing }),
 }))
 
-export const shouldAttemptSilentRefresh = () => localStorage.getItem(REMEMBER_KEY) === 'true'
+export const shouldAttemptSilentRefresh = () => {
+  try {
+    return localStorage.getItem(REMEMBER_KEY) === 'true'
+  } catch {
+    return false
+  }
+}

@@ -47,7 +47,7 @@ export function Sidebar({ onNavigate, collapsed, showCollapseToggle = true }) {
       className="flex h-full flex-col border-r border-gray-100 bg-white dark:border-white/10 dark:bg-gray-950"
     >
       <div className="flex items-center justify-between gap-2 px-4 py-5">
-        {!isCollapsed && <Logo />}
+        <Logo showName={!isCollapsed} />
         {showCollapseToggle && (
           <button
             type="button"

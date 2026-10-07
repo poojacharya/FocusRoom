@@ -25,8 +25,7 @@ export default function Friends() {
   // No dedicated UI store here (unlike Notes/Tasks/Calendar) — the only
   // transient view state on this page is the search text, which doesn't
   // need to be shared with any other component, so plain local state is
-  // enough. Same reasoning SearchBar.jsx already uses for the navbar
-  // search box.
+  // enough.
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebouncedValue(query, 300)
   const showSearchResults = debouncedQuery.trim().length >= MIN_QUERY_LENGTH

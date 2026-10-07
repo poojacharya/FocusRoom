@@ -4,7 +4,6 @@ import { useUIStore } from '../../store/useUIStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useAppStore } from '../../store/useAppStore'
 import { Avatar } from '../ui/Avatar'
-import { SearchBar } from './SearchBar'
 import { NotificationBell } from './NotificationBell'
 
 function getGreeting() {
@@ -42,8 +41,6 @@ export function Navbar() {
           {firstName ? `, ${firstName}` : ''}
         </p>
       </div>
-
-      <SearchBar />
 
       <div className="flex items-center gap-1.5">
         <button

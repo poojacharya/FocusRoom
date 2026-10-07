@@ -5,14 +5,10 @@ import { Server } from 'socket.io'
 import { createApp } from './src/app.js'
 import { connectDB } from './src/config/db.js'
 import { initSockets } from './src/sockets/index.js'
+import { corsOrigin, createBlockedOriginError, isAllowedOrigin } from './src/config/cors.js'
 
 const PORT = Number(process.env.PORT || 5000)
 const MAX_PORT_ATTEMPTS = 10
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  process.env.CLIENT_URL,
-].filter(Boolean)
 
 async function start() {
   await connectDB()
@@ -21,16 +17,15 @@ async function start() {
   const httpServer = http.createServer(app)
 
   const io = new Server(httpServer, {
+    maxHttpBufferSize: 8 * 1024 * 1024,
     cors: {
-      origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true)
-          return
-        }
-
-        callback(new Error(`Socket.IO origin blocked: ${origin}`))
-      },
+      origin: corsOrigin,
       credentials: true,
+    },
+    allowRequest: (request, callback) => {
+      const origin = request.headers.origin
+      const isAllowed = isAllowedOrigin(origin)
+      callback(isAllowed ? null : createBlockedOriginError(origin, 'Socket.IO'), isAllowed)
     },
   })
   initSockets(io)

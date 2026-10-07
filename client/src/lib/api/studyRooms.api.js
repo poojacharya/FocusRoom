@@ -20,6 +20,7 @@ export async function fetchRoomMessages(id) {
     _id: message._id,
     roomId: message.room,
     text: message.content,
+    attachments: message.attachments ?? [],
     sender: message.sender,
     sentAt: message.createdAt,
   }))

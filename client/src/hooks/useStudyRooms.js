@@ -12,7 +12,7 @@ import { showErrorToast, showSuccessToast } from '../lib/toast'
 
 const ROOMS_KEY = ['studyRooms']
 const roomKey = (id) => ['studyRooms', id]
-const roomMessagesKey = (id) => ['studyRooms', id, 'messages']
+export const roomMessagesKey = (id) => ['studyRooms', id, 'messages']
 
 export function useMyRoomsQuery() {
   return useQuery({ queryKey: ROOMS_KEY, queryFn: fetchMyRooms })
@@ -26,16 +26,15 @@ export function useRoomQuery(id) {
   })
 }
 
-// Recent chat history for a room — read once on open and then merged
-// with live studyRoom:receiveMessage events in useStudyRoomChat.js, not
-// kept in sync via refetch (the socket connection is the source of
-// truth for anything after the initial load).
+// Recent chat history is refetched whenever a room is reopened, then
+// merged with live socket messages while the chat is mounted.
 export function useRoomMessagesQuery(id) {
   return useQuery({
     queryKey: roomMessagesKey(id),
     queryFn: () => fetchRoomMessages(id),
     enabled: Boolean(id),
-    staleTime: Infinity,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 }
 

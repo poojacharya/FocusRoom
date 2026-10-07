@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AlignCenter,
   AlignJustify,
@@ -18,9 +18,21 @@ import {
 } from 'lucide-react'
 import { useAutosaveNote } from '../../hooks/useAutosaveNote'
 import { SaveStatusIndicator } from './SaveStatusIndicator'
+import { readAttachments, showAttachmentError } from '../../lib/attachments'
+import { showErrorToast } from '../../lib/toast'
 
-const ALLOWED_TAGS = new Set(['A', 'B', 'BR', 'DIV', 'EM', 'H1', 'H2', 'H3', 'I', 'LI', 'OL', 'P', 'STRONG', 'U', 'UL'])
+const ALLOWED_TAGS = new Set(['A', 'B', 'BR', 'DIV', 'EM', 'H1', 'H2', 'H3', 'I', 'IMG', 'LI', 'OL', 'P', 'STRONG', 'U', 'UL'])
 const ALLOWED_ALIGNMENTS = new Set(['left', 'center', 'right', 'justify'])
+const MAX_NOTE_EMBEDDED_BYTES = 7 * 1024 * 1024
+
+function safeImageSource(src) {
+  if (/^data:image\/(png|jpeg|gif|webp|avif|bmp);base64,/i.test(src)) return true
+  try {
+    return ['http:', 'https:'].includes(new URL(src).protocol)
+  } catch {
+    return false
+  }
+}
 
 function isSafeLink(href) {
   try {
@@ -44,12 +56,20 @@ function sanitizeEditorHtml(html) {
     }
 
     const href = element.getAttribute('href')
+    const src = element.getAttribute('src')
+    const alt = element.getAttribute('alt')
     const textAlign = (element.style.textAlign || element.getAttribute('align') || '').toLowerCase()
     Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name))
 
     if (element.tagName === 'A' && href && isSafeLink(href)) {
       element.setAttribute('href', href)
       element.setAttribute('rel', 'noreferrer')
+    }
+    if (element.tagName === 'IMG' && src && safeImageSource(src)) {
+      element.setAttribute('src', src)
+      element.setAttribute('alt', alt || 'Pasted image')
+      element.setAttribute('class', 'my-3 max-h-96 max-w-full rounded-lg object-contain')
+      element.setAttribute('loading', 'lazy')
     }
     if (ALLOWED_ALIGNMENTS.has(textAlign)) element.style.textAlign = textAlign
   }
@@ -64,7 +84,7 @@ function toEditorHtml(body) {
   return body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
 }
 
-function ToolbarButton({ label, onClick, children }) {
+function ToolbarButton({ label, onClick, children, disabled = false }) {
   return (
     <button
       type="button"
@@ -72,7 +92,8 @@ function ToolbarButton({ label, onClick, children }) {
       aria-label={label}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
-      className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100"
+      disabled={disabled}
+      className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 disabled:cursor-wait disabled:opacity-60 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100"
     >
       {children}
     </button>
@@ -84,6 +105,8 @@ export function NoteEditor({ note, onDelete, isDeleting }) {
   const titleRef = useRef(null)
   const editorRef = useRef(null)
   const fileInputRef = useRef(null)
+  const savedRangeRef = useRef(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   // Auto-focus the title on a brand-new (empty-title) note so typing works
   // immediately. Switching to an existing note doesn't steal focus — the
@@ -128,45 +151,106 @@ export function NoteEditor({ note, onDelete, isDeleting }) {
   }
 
   const addDocument = () => {
+    const selection = window.getSelection()
+    savedRangeRef.current = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null
     fileInputRef.current?.click()
   }
 
-  const attachUploadedFiles = async (files) => {
-    const uploadedDocuments = await Promise.all(
-      files.map(
-        (file) =>
-          new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => {
-              resolve({
-                title: file.name || 'Uploaded document',
-                url: typeof reader.result === 'string' ? reader.result : '',
-                createdAt: new Date().toISOString(),
-              })
-            }
-            reader.onerror = () => reject(new Error(`Could not read ${file.name}`))
-            reader.readAsDataURL(file)
-          }),
-      ),
-    )
+  const insertImages = (images, savedRange) => {
+    const editor = editorRef.current
+    if (!editor) return
 
-    setDocuments((current) => [...current, ...uploadedDocuments])
+    editor.focus()
+    const selection = window.getSelection()
+    if (selection) {
+      selection.removeAllRanges()
+      if (savedRange && editor.contains(savedRange.commonAncestorContainer)) {
+        selection.addRange(savedRange)
+      }
+    }
+
+    for (const image of images) {
+      const img = document.createElement('img')
+      img.src = image.data
+      img.alt = image.name
+      img.className = 'my-3 max-h-96 max-w-full rounded-lg object-contain'
+      img.loading = 'lazy'
+      const activeRange = selection?.rangeCount ? selection.getRangeAt(0) : null
+      if (activeRange && editor.contains(activeRange.commonAncestorContainer)) {
+        activeRange.deleteContents()
+        activeRange.insertNode(img)
+        activeRange.setStartAfter(img)
+        activeRange.collapse(true)
+        selection?.removeAllRanges()
+        selection?.addRange(activeRange)
+      } else {
+        editor.append(img)
+      }
+    }
+    updateBodyFromEditor()
+  }
+
+  const attachUploadedFiles = async (files, savedRange = null) => {
+    setIsUploading(true)
+    try {
+      const uploadedFiles = await readAttachments(files)
+      const images = uploadedFiles.filter((file) => file.type.startsWith('image/'))
+      const uploadedDocuments = uploadedFiles
+        .filter((file) => !file.type.startsWith('image/'))
+        .map((file) => ({
+          title: file.name,
+          url: file.data,
+          type: file.type,
+          createdAt: new Date().toISOString(),
+        }))
+
+      const existingBodySize = editorRef.current?.innerHTML.length || 0
+      const existingDocumentsSize = documents.reduce((total, item) => total + (item.url?.length || 0), 0)
+      const newAttachmentsSize = uploadedFiles.reduce((total, file) => total + file.data.length, 0)
+      if (existingBodySize + existingDocumentsSize + newAttachmentsSize > MAX_NOTE_EMBEDDED_BYTES) {
+        throw new Error('All embedded note content must total 7 MB or less')
+      }
+
+      if (images.length > 0) {
+        insertImages(images, savedRange)
+      }
+      if (uploadedDocuments.length > 0) {
+        setDocuments((current) => [...current, ...uploadedDocuments])
+      }
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleFileUpload = async (event) => {
     const files = Array.from(event.target.files || [])
-    if (!files.length) return
-
-    await attachUploadedFiles(files)
-    event.target.value = ''
+    try {
+      if (files.length) await attachUploadedFiles(files, savedRangeRef.current)
+    } catch (error) {
+      showErrorToast(showAttachmentError(error))
+    } finally {
+      savedRangeRef.current = null
+      event.target.value = ''
+    }
   }
 
   const handlePaste = async (event) => {
-    const pastedFiles = Array.from(event.clipboardData?.files || [])
-    if (!pastedFiles.length) return
+    const clipboard = event.clipboardData
+    const clipboardItems = Array.from(clipboard?.items || [])
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter(Boolean)
+    const files = [...new Set([...Array.from(clipboard?.files || []), ...clipboardItems])]
+    if (files.length === 0) return
 
     event.preventDefault()
-    await attachUploadedFiles(pastedFiles)
+    const selection = window.getSelection()
+    const savedRange = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null
+    try {
+      await attachUploadedFiles(files, savedRange)
+    } catch (error) {
+      showErrorToast(showAttachmentError(error))
+    }
   }
 
   const removeDocument = (index) => {
@@ -220,11 +304,16 @@ export function NoteEditor({ note, onDelete, isDeleting }) {
           <ToolbarButton label="Justify text" onClick={() => applyCommand('justifyFull')}><AlignJustify className="h-4 w-4" /></ToolbarButton>
           <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-white/10" />
           <ToolbarButton label="Add link" onClick={addLink}><Link className="h-4 w-4" /></ToolbarButton>
-          <ToolbarButton label="Upload file" onClick={addDocument}><Upload className="h-4 w-4" /></ToolbarButton>
+          <ToolbarButton label="Add image or document" onClick={addDocument} disabled={isUploading}>
+            <span className="inline-flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              <span className="text-xs font-medium">{isUploading ? 'Adding…' : 'Add image or file'}</span>
+            </span>
+          </ToolbarButton>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv,.ppt,.pptx,image/*,.zip"
+            accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/bmp,.png,.jpg,.jpeg,.jfif,.jpe,.gif,.webp,.avif,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.ppt,.pptx"
             multiple
             onChange={handleFileUpload}
             className="hidden"
@@ -232,13 +321,46 @@ export function NoteEditor({ note, onDelete, isDeleting }) {
         </div>
 
         {documents.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {documents.map((document, index) => (
-              <div key={`${document.title}-${document.url}-${index}`} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-gray-200">
-                <a href={document.url === '#' ? undefined : document.url} target="_blank" rel="noreferrer" className="font-medium text-brand-600 hover:text-brand-500 dark:text-brand-400">
-                  {document.title || 'Untitled document'}
-                </a>
-                <button type="button" aria-label={`Remove ${document.title || 'document'}`} onClick={() => removeDocument(index)} className="text-gray-400 hover:text-red-500">×</button>
+          <div className="mt-4 space-y-3">
+            {documents.map((attachment, index) => (
+              <div
+                key={`${attachment.title}-${attachment.url}-${index}`}
+                className="rounded-xl border border-gray-200 p-3 dark:border-white/10"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <a
+                    href={attachment.url || undefined}
+                    download={attachment.title || 'attachment'}
+                    className="truncate text-sm font-medium text-brand-600 hover:text-brand-500 dark:text-brand-400"
+                  >
+                    {attachment.title || 'Untitled document'}
+                  </a>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${attachment.title || 'document'}`}
+                    onClick={() => removeDocument(index)}
+                    className="shrink-0 text-gray-400 hover:text-red-500"
+                  >
+                    ×
+                  </button>
+                </div>
+                {attachment.type?.startsWith('image/') ? (
+                  <img
+                    src={attachment.url}
+                    alt={attachment.title}
+                    className="max-h-96 max-w-full rounded-lg object-contain"
+                  />
+                ) : attachment.type === 'application/pdf' ? (
+                  <iframe
+                    src={attachment.url}
+                    title={attachment.title}
+                    className="h-96 w-full rounded-lg"
+                  />
+                ) : (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Embedded attachment · select the filename to download
+                  </p>
+                )}
               </div>
             ))}
           </div>

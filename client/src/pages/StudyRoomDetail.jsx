@@ -8,6 +8,7 @@ import { SkeletonBlock } from '../components/ui/Skeleton'
 import { RoomMemberItem } from '../components/study-rooms/RoomMemberItem'
 import { ChatPanel } from '../components/study-rooms/ChatPanel'
 import { useRoomQuery, useLeaveRoom, useDeleteRoom } from '../hooks/useStudyRooms'
+import { useStudyRoomPresence } from '../hooks/useStudyRoomPresence'
 import { useAuthStore } from '../store/useAuthStore'
 import { showSuccessToast } from '../lib/toast'
 
@@ -17,6 +18,7 @@ export default function StudyRoomDetail() {
   const currentUserId = useAuthStore((s) => s.user?._id)
 
   const { data: room, isLoading, isError } = useRoomQuery(id)
+  const { members: liveMembers, onlineIds } = useStudyRoomPresence(id, room?.members)
   const leaveRoom = useLeaveRoom()
   const deleteRoom = useDeleteRoom()
 
@@ -67,7 +69,7 @@ export default function StudyRoomDetail() {
         <>
           <SectionHeader
             title={room.name}
-            subtitle={`${room.members.length} member${room.members.length === 1 ? '' : 's'}`}
+            subtitle={`${(liveMembers.length ? liveMembers : room.members).length} member${(liveMembers.length ? liveMembers : room.members).length === 1 ? '' : 's'} · ${onlineIds.length} online`}
             action={
               isOwner ? (
                 <button
@@ -119,17 +121,18 @@ export default function StudyRoomDetail() {
                 action={
                   <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                     <Users2 className="h-3.5 w-3.5" />
-                    {room.members.length}
+                    {liveMembers.length || room.members.length}
                   </span>
                 }
                 className="px-4 pt-4"
               />
               <ul className="space-y-1 p-2 pb-4">
-                {room.members.map((member) => (
+                {(liveMembers.length ? liveMembers : room.members).map((member) => (
                   <RoomMemberItem
                     key={member._id}
                     member={member}
                     isOwner={String(member._id) === String(room.owner?._id)}
+                    isOnline={onlineIds.includes(String(member._id))}
                   />
                 ))}
               </ul>

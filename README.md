@@ -45,8 +45,9 @@ Instead of switching between separate apps for tasks, notes, timers, calendars, 
 ### 💬 Real-Time Chat
 
 * Communicate with other users
-* Room-based messaging
-* Real-time communication powered by Socket.IO
+* Persisted direct messages with friends
+* Persisted study-room messages with live room presence
+* Share images and documents in study-room chat
 
 ### 👥 Friends
 
@@ -191,6 +192,16 @@ server/.env
 Use the provided `.env.example` files as templates.
 
 > Never commit `.env` files or database credentials to GitHub.
+
+### Production deployment configuration
+
+Set `CLIENT_URL` on the server to the exact HTTPS origin of the deployed frontend
+(no wildcard); comma-separated origins are supported when multiple frontend
+origins are required. The same allowlist is used by Express APIs and Socket.IO.
+For a separately hosted frontend, set `VITE_API_URL` at client build time to the
+backend origin (for example, `https://api.example.com`); set `VITE_SOCKET_URL`
+only when the Socket.IO server uses a different origin. The API enables
+credentialed requests, so production refresh cookies require HTTPS.
 
 ### 4. Start the application
 

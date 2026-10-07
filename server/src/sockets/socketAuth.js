@@ -31,6 +31,12 @@ export async function socketAuth(socket, next) {
     }
 
     socket.user = user
+    socket.data.user = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar || null,
+    }
     next()
   } catch {
     next(new Error('Authentication required'))

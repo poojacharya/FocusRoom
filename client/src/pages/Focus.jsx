@@ -9,7 +9,9 @@ import { TimerDisplay } from '../components/focus/TimerDisplay'
 import { TimerControls } from '../components/focus/TimerControls'
 import { DurationConfig } from '../components/focus/DurationConfig'
 import { RecentSessionsList } from '../components/focus/RecentSessionsList'
+import { useEffect, useRef } from 'react'
 import { useFocusTimerStore } from '../store/useFocusTimerStore'
+import { useSettingsStore } from '../store/useSettingsStore'
 
 export default function Focus() {
   const mode = useFocusTimerStore((s) => s.mode)
@@ -23,9 +25,25 @@ export default function Focus() {
   const isSaving = useFocusTimerStore((s) => s.isSaving)
   const finishSession = useFocusTimerStore((s) => s.finishSession)
   const unlockAlarm = useFocusTimerStore((s) => s.unlockAlarm)
+  const focusSessionMinutes = useSettingsStore((s) => s.settings.focusSessionMinutes)
+  const autoStartFocus = useSettingsStore((s) => s.settings.autoStartFocus)
+  const setTargetSeconds = useFocusTimerStore((s) => s.setTargetSeconds)
+  const didAutoStart = useRef(false)
 
   // Ticking + auto-save live on DashboardLayout (useFocusTimerEngine)
   // so elapsed time keeps moving while navigating away from this page.
+
+  useEffect(() => {
+    if (mode === 'pomodoro' && status === 'idle') {
+      setTargetSeconds(focusSessionMinutes * 60)
+    }
+  }, [focusSessionMinutes, mode, setTargetSeconds, status])
+
+  useEffect(() => {
+    if (didAutoStart.current) return
+    didAutoStart.current = true
+    if (autoStartFocus && status === 'idle') start()
+  }, [autoStartFocus, start, status])
 
   return (
     <PageContainer>

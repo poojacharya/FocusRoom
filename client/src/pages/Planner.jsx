@@ -6,6 +6,7 @@ import { PlannerForm } from '../components/planner/PlannerForm'
 import { SavedPlanCard } from '../components/planner/SavedPlanCard'
 import { useStudyPlanQuery, useGenerateStudySchedule } from '../hooks/useStudyPlan'
 import { useStudyPlannerForm } from '../hooks/useStudyPlannerForm'
+import { useSettingsStore } from '../store/useSettingsStore'
 
 // Same { examDate, subjects, availableStudyHours } shape the generate
 // endpoint expects, but built from the already-saved plan rather than
@@ -32,6 +33,7 @@ export default function Planner() {
   // sharing one and having their loading/error UI bleed into each other.
   const generateSchedule = useGenerateStudySchedule()
   const regenerateSchedule = useGenerateStudySchedule()
+  const compactPlanner = useSettingsStore((s) => s.settings.compactPlanner)
 
   const form = useStudyPlannerForm(plan, isLoading)
 
@@ -70,7 +72,12 @@ export default function Planner() {
               title={plan ? 'Edit your plan' : 'Build your plan'}
               subtitle="Add your exam date, subjects, and how many hours you can study each day"
             />
-            <PlannerForm form={form} onSubmit={handleGenerate} isSaving={generateSchedule.isPending} />
+            <PlannerForm
+              form={form}
+              onSubmit={handleGenerate}
+              isSaving={generateSchedule.isPending}
+              compact={compactPlanner}
+            />
           </Card>
 
           <SavedPlanCard

@@ -213,7 +213,18 @@ export const updateProfile = asyncHandler(async (req, res) => {
   }
 
   if (avatar !== undefined) {
-    updates.avatar = avatar === null || avatar === '' ? null : String(avatar)
+    if (avatar === null || avatar === '') {
+      updates.avatar = null
+    } else if (
+      typeof avatar !== 'string' ||
+      avatar.length > 6 * 1024 * 1024 ||
+      (avatar.startsWith('data:') && !/^data:image\/(png|jpeg|gif|webp);base64,/i.test(avatar)) ||
+      (!avatar.startsWith('data:') && !/^https:\/\//i.test(avatar))
+    ) {
+      throw new ApiError(400, 'Avatar must be an HTTPS image URL or a supported image under 4 MB')
+    } else {
+      updates.avatar = avatar
+    }
   }
 
   const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true })

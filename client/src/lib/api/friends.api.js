@@ -39,3 +39,13 @@ export async function removeFriendApi(friendshipId) {
   await api.delete(`/friends/${friendshipId}`)
   return friendshipId
 }
+
+export async function fetchDirectMessages(friendId) {
+  const { data } = await api.get(`/friends/${friendId}/messages`)
+  return data.data
+}
+
+export async function sendDirectMessage(friendId, text) {
+  const { data } = await api.post(`/friends/${friendId}/messages`, { text })
+  return data.data
+}

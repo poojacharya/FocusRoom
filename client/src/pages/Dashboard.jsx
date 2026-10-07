@@ -7,8 +7,12 @@ import { StudyTimerCard } from '../components/dashboard/StudyTimerCard'
 import { StreakCard } from '../components/dashboard/StreakCard'
 import { UpcomingSessionsCard } from '../components/dashboard/UpcomingSessionsCard'
 import { RecentActivityCard } from '../components/dashboard/RecentActivityCard'
+import { DailyRecapCard } from '../components/dashboard/DailyRecapCard'
+import { useSettingsStore } from '../store/useSettingsStore'
 
 export default function Dashboard() {
+  const showDailyRecap = useSettingsStore((s) => s.settings.dailyRecap)
+
   return (
     <PageContainer>
       <div className="mb-6">
@@ -21,6 +25,7 @@ export default function Dashboard() {
         <StreakCard />
         <UpcomingSessionsCard />
         <RecentActivityCard />
+        {showDailyRecap && <DailyRecapCard />}
       </DashboardGrid>
     </PageContainer>
   )

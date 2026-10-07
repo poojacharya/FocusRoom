@@ -4,7 +4,7 @@ import { ApiResponse } from '../utils/ApiResponse.js'
 import { StudyRoom } from '../models/StudyRoom.model.js'
 import { ChatMessage } from '../models/ChatMessage.model.js'
 
-const MEMBER_SELECT = 'name email'
+const MEMBER_SELECT = 'name email avatar'
 const MAX_CODE_GENERATION_ATTEMPTS = 5
 const MESSAGE_HISTORY_LIMIT = 50
 
@@ -71,7 +71,7 @@ export const listRoomMessages = asyncHandler(async (req, res) => {
   const recentFirst = await ChatMessage.find({ room: req.params.id })
     .sort({ createdAt: -1 })
     .limit(MESSAGE_HISTORY_LIMIT)
-    .populate('sender', MEMBER_SELECT)
+    .populate('sender', 'name email avatar')
 
   res.status(200).json(new ApiResponse(200, recentFirst.reverse()))
 })

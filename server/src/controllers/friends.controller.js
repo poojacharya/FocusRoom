@@ -198,8 +198,8 @@ export const acceptFriendRequest = asyncHandler(async (req, res) => {
     { status: 'accepted' },
     { new: true },
   )
-    .populate('userA', 'name email')
-    .populate('userB', 'name email')
+    .populate('userA', 'name email avatar')
+    .populate('userB', 'name email avatar')
 
   if (!request) {
     throw new ApiError(404, 'Friend request not found')

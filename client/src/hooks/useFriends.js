@@ -8,6 +8,8 @@ import {
   acceptFriendRequestApi,
   rejectFriendRequestApi,
   removeFriendApi,
+  fetchDirectMessages,
+  sendDirectMessage,
 } from '../lib/api/friends.api'
 import { showErrorToast, showSuccessToast } from '../lib/toast'
 
@@ -21,7 +23,29 @@ const SEARCH_KEY_PREFIX = ['friends', 'search']
 const MIN_QUERY_LENGTH = 2
 
 export function useFriendsQuery() {
-  return useQuery({ queryKey: FRIENDS_KEY, queryFn: fetchFriends })
+  return useQuery({ queryKey: FRIENDS_KEY, queryFn: fetchFriends, refetchInterval: 30_000 })
+}
+
+export function useDirectMessagesQuery(friendId) {
+  return useQuery({
+    queryKey: ['directMessages', friendId],
+    queryFn: () => fetchDirectMessages(friendId),
+    enabled: Boolean(friendId),
+    refetchInterval: 2000,
+  })
+}
+
+export function useSendDirectMessage(friendId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (text) => sendDirectMessage(friendId, text),
+    onSuccess: (message) => {
+      queryClient.setQueryData(['directMessages', friendId], (messages = []) =>
+        messages.some((existing) => existing._id === message._id) ? messages : [...messages, message],
+      )
+    },
+    onError: (error) => showErrorToast(error?.response?.data?.message || "Couldn't send your message"),
+  })
 }
 
 export function useIncomingRequestsQuery() {

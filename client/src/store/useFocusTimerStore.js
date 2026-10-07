@@ -1,6 +1,7 @@
 import { create } from 'zustand'
+import { DEFAULT_SETTINGS } from '../lib/settings'
 
-const DEFAULT_POMODORO_SECONDS = 25 * 60
+const DEFAULT_POMODORO_SECONDS = DEFAULT_SETTINGS.focusSessionMinutes * 60
 const DEFAULT_COUNTDOWN_SECONDS = 10 * 60
 
 function computeElapsedSeconds(state) {
