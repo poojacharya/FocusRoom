@@ -3,8 +3,8 @@ import { ApiError } from './ApiError.js'
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
 const DEFAULT_MODEL = 'gemini-3.6-flash'
 const DEFAULT_HOURS_PER_DAY = 2
-const MAX_SCHEDULE_DAYS = 120
-const MAX_TOKENS = 8000
+const MAX_SCHEDULE_DAYS = 30
+const MAX_TOKENS = 16000
 
 function getApiKey() {
   const key = process.env.GEMINI_API_KEY
@@ -27,6 +27,7 @@ Respond with ONLY valid JSON — no markdown code fences, no commentary before o
     {
       "date": "<YYYY-MM-DD>",
       "hours": <number>,
+      "focus": "<the main outcome for this day>",
       "focusBlocks": [
         {
           "title": "<short block name>",
@@ -34,7 +35,15 @@ Respond with ONLY valid JSON — no markdown code fences, no commentary before o
           "subject": "<subject name>",
           "location": "<where the student should study, e.g. library, desk, quiet room>",
           "method": "<how the student should study the topic, e.g. active recall, practice questions, spaced repetition>",
-          "goal": "<clear learning outcome for that block, with a concrete action and result>"
+          "steps": ["<one specific action>", "<next specific action>", "<final check for understanding>"],
+          "goal": "<measurable definition of done>",
+          "resources": [
+            {
+              "title": "<specific resource or search topic>",
+              "provider": "<Khan Academy, OpenStax, MIT OpenCourseWare, PhET, LibreTexts, or Google Scholar>",
+              "searchQuery": "<focused query using the subject and topic>"
+            }
+          ]
         }
       ],
       "subjects": [
@@ -50,7 +59,11 @@ Respond with ONLY valid JSON — no markdown code fences, no commentary before o
   ]
 }
 
-Create a highly detailed but realistic plan: give each day 2-4 focus blocks with a useful title, duration, subject, location, method, and goal. Every block must explain exactly what to study, how to study it, where to do it, and what success looks like. For example, a goal should say: 'Review the oxidation-reduction reactions from class notes and complete 6 timed questions to build recall before the next practice set.' Mention active recall, practice problems, flashcards, summaries, and spaced review as appropriate. Spread the workload across subjects proportionally to the number of topics and difficulty, and keep each day under the available hours. Prefer a sensible cadence over listing every single day for long gaps, but include enough detail that the student knows the exact plan for each day. Include a realistic study location such as a desk, library, classroom, or quiet room, and a method such as active recall, practice questions, teaching out loud, or chapter review. If no subjects are provided, return an empty "days" array and explain why in "summary". Never include any text outside the JSON object.`
+Create a highly detailed, realistic, and pedagogically sound plan. Include every calendar day from today up to (but not including) the exam date, or at most ${MAX_SCHEDULE_DAYS} days for a longer horizon. Do not skip days. Give each day 2-4 focus blocks; distribute time across subjects in proportion to topic count and difficulty, revisit topics with spaced retrieval, and reserve the final study day for a mixed timed review and confidence-building (not new material).
+
+Make every block executable without guesswork: include 3-5 ordered, specific steps (start with what to open or recall, then exactly what to do, finish with a self-check), a measurable definition of done, one named study method, a realistic location, and a duration in minutes. Ensure the sum of block durations matches the day hours and never exceeds the student's available hours. Use retrieval practice, interleaving, worked examples, and deliberate error review where appropriate; schedule short breaks between blocks rather than counting breaks as study time. Make the daily focus a concrete outcome, not a generic subject label.
+
+Include 1-2 genuinely relevant resource suggestions per block from this provider list only: Khan Academy, OpenStax, MIT OpenCourseWare, PhET, LibreTexts, Google Scholar. Provide a short title and a focused searchQuery, not a fabricated direct URL. Prefer the provider that best fits the topic; do not use PhET for non-interactive topics. Resource links will be generated as searches restricted to that provider. If a subject has no topics listed, create a sensible diagnostic-and-foundations sequence and state that it is based on the subject name. If no subjects are provided, return an empty "days" array and explain why in "summary". Never include any text outside the JSON object.`
 
 function buildPrompt({ examDate, subjects, availableStudyHours }) {
   const today = new Date().toISOString().slice(0, 10)
@@ -74,9 +87,9 @@ Available study hours per day: ${hoursPerDay}
 Subjects and topics:
 ${subjectLines}
 
-Build a realistic, highly detailed day-by-day study schedule from today until the exam date (inclusive of today, excluding the exam date itself, which should be left free for rest/review). Distribute time across subjects roughly proportional to how many topics each has and their difficulty. Group related topics on the same day where sensible rather than scattering single topics across many days.
+Build a realistic, highly detailed day-by-day study schedule from today until the exam date (excluding the exam date, which should be left free for rest and light review). Include every day, capped at ${MAX_SCHEDULE_DAYS} days. If the exam is more than ${MAX_SCHEDULE_DAYS} days away, make this a focused first-phase plan and say so in the summary; the student can regenerate later for the next phase. Group related topics on the same day where sensible, sequence prerequisites before advanced topics, and revisit earlier material using spaced retrieval.
 
-For every planned day, include 2-4 focus blocks with a clear title, minutes, subject, location, method, and goal. Each block must state what to study, how to study it, where to study it, and what concrete outcome to aim for. Example: "Review the oxidation-reduction reactions from class notes, then complete 6 timed practice questions in a quiet desk session to improve recall and accuracy before the next mixed quiz." Include a short subject-level goal for each subject worked that day, and a final encouraging sentence plus a one-line checkpoint reminder. Keep each day's total hours at or under the available hours per day. If the gap is large, favor a sensible study cadence over listing every single day past a reasonable planning horizon (cap around ${MAX_SCHEDULE_DAYS} days).`
+For every day, add a concrete focus outcome and 2-4 focus blocks. Each block needs 3-5 ordered actions, an observable definition of done, one method, a specific location, and a realistic duration. Make daily hours equal the sum of block minutes and keep them at or under ${hoursPerDay} hours. Include 1-2 resource suggestions per block, selecting providers only from Khan Academy, OpenStax, MIT OpenCourseWare, PhET, LibreTexts, and Google Scholar; give a focused search query and never invent a direct resource URL. Include subject goals/topics for subjects worked that day, one brief next action, and a checkpoint that tests recall or catches a likely mistake. Account for gradual progression from learning to practice to mixed review; do not schedule new topics on the final study day.`
 }
 
 function extractJson(text) {
@@ -121,7 +134,7 @@ function extractGeminiText(payload) {
   return null
 }
 
-function validateSchedule(schedule) {
+function validateSchedule(schedule, { examDate, subjects, availableStudyHours }) {
   if (!schedule || typeof schedule !== 'object' || Array.isArray(schedule)) {
     throw new Error('AI response must be a JSON object')
   }
@@ -138,6 +151,36 @@ function validateSchedule(schedule) {
     throw new Error('AI response missing days array')
   }
 
+  if (schedule.days.length > MAX_SCHEDULE_DAYS) {
+    throw new Error(`AI response exceeds the ${MAX_SCHEDULE_DAYS}-day planning horizon`)
+  }
+
+  const allowedProviders = new Set([
+    'Khan Academy',
+    'OpenStax',
+    'MIT OpenCourseWare',
+    'PhET',
+    'LibreTexts',
+    'Google Scholar',
+  ])
+
+  if (schedule.totalDays !== schedule.days.length) {
+    throw new Error('AI response totalDays does not match the days array')
+  }
+
+  const hoursPerDay = availableStudyHours ?? DEFAULT_HOURS_PER_DAY
+  const today = new Date().toISOString().slice(0, 10)
+  const expectedExamDate = examDate ? String(examDate).slice(0, 10) : addDays(today, 14)
+  const daysUntilExam = Math.max(
+    0,
+    Math.floor((Date.parse(`${expectedExamDate}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000),
+  )
+  const expectedDayCount = subjects.length ? Math.min(daysUntilExam, MAX_SCHEDULE_DAYS) : 0
+
+  if (schedule.days.length !== expectedDayCount) {
+    throw new Error('AI response does not include every day in the planning horizon')
+  }
+
   schedule.days.forEach((day, index) => {
     if (!day || typeof day !== 'object' || Array.isArray(day)) {
       throw new Error(`Day ${index} is invalid`)
@@ -145,24 +188,70 @@ function validateSchedule(schedule) {
     if (typeof day.date !== 'string' || !day.date) {
       throw new Error(`Day ${index} missing date`)
     }
+    if (day.date !== addDays(today, index)) {
+      throw new Error(`Day ${index} has an incorrect or out-of-order date`)
+    }
     if (typeof day.hours !== 'number' || Number.isNaN(day.hours) || day.hours < 0) {
       throw new Error(`Day ${index} has invalid hours`)
     }
-    if (day.focusBlocks !== undefined) {
-      if (!Array.isArray(day.focusBlocks)) {
-        throw new Error(`Day ${index} focusBlocks must be an array when provided`)
+    if (typeof day.focus !== 'string' || !day.focus.trim()) {
+      throw new Error(`Day ${index} missing a daily focus`)
+    }
+    if (!Array.isArray(day.focusBlocks) || day.focusBlocks.length < 2 || day.focusBlocks.length > 4) {
+      throw new Error(`Day ${index} must have 2-4 focus blocks`)
+    }
+    day.focusBlocks.forEach((block, blockIndex) => {
+      if (!block || typeof block !== 'object' || Array.isArray(block)) {
+        throw new Error(`Day ${index} focus block ${blockIndex} is invalid`)
       }
-      day.focusBlocks.forEach((block, blockIndex) => {
-        if (!block || typeof block !== 'object' || Array.isArray(block)) {
-          throw new Error(`Day ${index} focus block ${blockIndex} is invalid`)
-        }
-        if (typeof block.title !== 'string' || !block.title.trim()) {
-          throw new Error(`Day ${index} focus block ${blockIndex} missing title`)
-        }
-        if (typeof block.duration !== 'number' || Number.isNaN(block.duration) || block.duration <= 0) {
-          throw new Error(`Day ${index} focus block ${blockIndex} missing valid duration`)
+      if (typeof block.title !== 'string' || !block.title.trim()) {
+        throw new Error(`Day ${index} focus block ${blockIndex} missing title`)
+      }
+      if (typeof block.duration !== 'number' || Number.isNaN(block.duration) || block.duration <= 0) {
+        throw new Error(`Day ${index} focus block ${blockIndex} missing valid duration`)
+      }
+      if (typeof block.subject !== 'string' || !block.subject.trim()) {
+        throw new Error(`Day ${index} focus block ${blockIndex} missing subject`)
+      }
+      if (typeof block.location !== 'string' || !block.location.trim()) {
+        throw new Error(`Day ${index} focus block ${blockIndex} missing location`)
+      }
+      if (typeof block.method !== 'string' || !block.method.trim()) {
+        throw new Error(`Day ${index} focus block ${blockIndex} missing study method`)
+      }
+      if (!Array.isArray(block.steps) || block.steps.length < 3 || block.steps.length > 5) {
+        throw new Error(`Day ${index} focus block ${blockIndex} must have 3-5 steps`)
+      }
+      if (block.steps.some((step) => typeof step !== 'string' || !step.trim())) {
+        throw new Error(`Day ${index} focus block ${blockIndex} has an invalid step`)
+      }
+      if (typeof block.goal !== 'string' || !block.goal.trim()) {
+        throw new Error(`Day ${index} focus block ${blockIndex} missing definition of done`)
+      }
+      if (!Array.isArray(block.resources) || block.resources.length < 1 || block.resources.length > 2) {
+        throw new Error(`Day ${index} focus block ${blockIndex} must have 1-2 resources`)
+      }
+      block.resources.forEach((resource, resourceIndex) => {
+        if (
+          !resource ||
+          typeof resource.title !== 'string' ||
+          !resource.title.trim() ||
+          !allowedProviders.has(resource.provider) ||
+          typeof resource.searchQuery !== 'string' ||
+          !resource.searchQuery.trim()
+        ) {
+          throw new Error(`Day ${index} focus block ${blockIndex} resource ${resourceIndex} is invalid`)
         }
       })
+    })
+
+    const focusMinutes = day.focusBlocks.reduce((sum, block) => sum + block.duration, 0)
+    const dayMinutes = day.hours * 60
+    if (Math.abs(focusMinutes - dayMinutes) > 1) {
+      throw new Error(`Day ${index} hours do not match the focus block durations`)
+    }
+    if (day.hours > hoursPerDay) {
+      throw new Error(`Day ${index} exceeds the available study hours`)
     }
     if (!Array.isArray(day.subjects)) {
       throw new Error(`Day ${index} missing subjects array`)
@@ -184,6 +273,12 @@ function validateSchedule(schedule) {
   })
 
   return schedule
+}
+
+function addDays(dateString, days) {
+  const date = new Date(`${dateString}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
 }
 
 /**
@@ -248,7 +343,7 @@ export async function generateStudySchedule({ examDate, subjects, availableStudy
 
   try {
     const parsed = extractJson(responseText)
-    return validateSchedule(parsed)
+    return validateSchedule(parsed, { examDate, subjects, availableStudyHours })
   } catch {
     throw new ApiError(502, "Couldn't parse or validate the generated study schedule from Gemini's response")
   }

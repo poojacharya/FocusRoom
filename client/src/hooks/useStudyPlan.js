@@ -25,7 +25,7 @@ export function useStudyPlanQuery() {
 
 // Not wired into the Planner UI — the "Generate Plan" button now goes
 // straight through useGenerateStudySchedule below, which upserts the
-// plan and calls Claude in a single request. Left here as a plain save
+// plan and calls Gemini in a single request. Left here as a plain save
 // path in case a future "save without generating" control is added.
 export function useCreateStudyPlan() {
   const queryClient = useQueryClient()
@@ -68,7 +68,7 @@ export function useDeleteStudyPlan() {
 
 // Drives the Planner page's "Generate Plan" button: sends the current
 // form values to POST /study-plan/generate, which saves them AND
-// returns the plan with a freshly Claude-generated `generatedSchedule`.
+// returns the plan with a freshly AI-generated `generatedSchedule`.
 // Patches the same STUDY_PLAN_KEY cache entry useStudyPlanQuery reads,
 // so the saved-plan panel and the generated schedule update together
 // from one response.

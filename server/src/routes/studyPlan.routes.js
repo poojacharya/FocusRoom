@@ -24,7 +24,7 @@ router.delete('/', deleteStudyPlan)
 
 // Same body shape as POST '/' (examDate/subjects/availableStudyHours),
 // reusing validateCreateStudyPlan as-is — this route additionally
-// upserts the plan and calls Claude to populate generatedSchedule (see
+// upserts the plan and calls Gemini to populate generatedSchedule (see
 // generateStudyPlanSchedule).
 router.post('/generate', validateCreateStudyPlan, generateStudyPlanSchedule)
 

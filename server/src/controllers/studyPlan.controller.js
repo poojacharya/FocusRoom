@@ -70,7 +70,7 @@ export const deleteStudyPlan = asyncHandler(async (req, res) => {
 // Powers the Planner page's "Generate Plan" button: saves whatever
 // exam date / subjects+topics / available hours were just submitted
 // (upserting the plan — a person may not have saved one yet), calls
-// Claude server-side to turn those inputs into a structured day-by-day
+// Gemini server-side to turn those inputs into a structured day-by-day
 // schedule (see utils/aiStudyPlanner.js — the API key never reaches the
 // client), and persists the result to generatedSchedule in the same
 // write. The AI call happens before the database write on purpose: if

@@ -55,7 +55,9 @@ api.interceptors.response.use(
       return api(originalRequest)
     } catch (refreshError) {
       refreshPromise = null
-      useAuthStore.getState().clearAuth()
+      if (refreshError.response?.status === 401) {
+        useAuthStore.getState().clearAuth()
+      }
       return Promise.reject(refreshError)
     }
   },

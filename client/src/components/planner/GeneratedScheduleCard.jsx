@@ -1,13 +1,31 @@
-import { RefreshCw, Sparkles, Clock3, BookOpenText, Target, ListChecks } from 'lucide-react'
+import { RefreshCw, Sparkles, Clock3, BookOpenText, Target, ListChecks, MapPin, ExternalLink } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { SectionHeader } from '../ui/SectionHeader'
 import { EmptyState } from '../ui/EmptyState'
 import { Button } from '../ui/Button'
 
 function formatDayLabel(dateString) {
-  const date = new Date(dateString)
+  const [year, month, day] = String(dateString).split('-').map(Number)
+  const date = new Date(year, month - 1, day)
   if (Number.isNaN(date.getTime())) return dateString
   return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+const RESOURCE_DOMAINS = {
+  'Khan Academy': 'khanacademy.org',
+  OpenStax: 'openstax.org',
+  'MIT OpenCourseWare': 'ocw.mit.edu',
+  PhET: 'phet.colorado.edu',
+  LibreTexts: 'libretexts.org',
+  'Google Scholar': 'scholar.google.com',
+}
+
+function resourceSearchUrl(resource) {
+  const domain = RESOURCE_DOMAINS[resource.provider]
+  if (!domain) return null
+
+  const query = `site:${domain} ${resource.searchQuery}`
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`
 }
 
 function formatMinutes(minutes) {
@@ -84,10 +102,12 @@ export function GeneratedScheduleCard({ schedule, onRegenerate, isRegenerating, 
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/[0.02]">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Overall strategy</p>
-            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">{schedule.summary}</p>
-          </div>
+          {schedule.strategy && (
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/[0.02]">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Study strategy</p>
+              <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">{schedule.strategy}</p>
+            </div>
+          )}
 
           <div className="space-y-4">
             {days.map((day, index) => (
@@ -101,6 +121,7 @@ export function GeneratedScheduleCard({ schedule, onRegenerate, isRegenerating, 
                       Day {index + 1}
                     </p>
                     <p className="text-base font-semibold text-gray-900 dark:text-gray-50">{formatDayLabel(day.date)}</p>
+                    {day.focus && <p className="mt-1 max-w-2xl text-sm text-gray-600 dark:text-gray-300">{day.focus}</p>}
                   </div>
 
                   {day.hours != null && (
@@ -113,20 +134,74 @@ export function GeneratedScheduleCard({ schedule, onRegenerate, isRegenerating, 
                 {day.focusBlocks?.length > 0 && (
                   <div className="mt-4 grid gap-2 md:grid-cols-2">
                     {day.focusBlocks.map((block, blockIndex) => (
-                      <div key={`${block.title}-${blockIndex}`} className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-white/[0.02]">
+                      <section key={`${block.title}-${blockIndex}`} className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-white/[0.02]">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{block.title}</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            <span className="mr-2 text-brand-600 dark:text-brand-300">{String(blockIndex + 1).padStart(2, '0')}</span>
+                            {block.title}
+                          </p>
                           <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                             {formatMinutes(block.duration || 0)}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">{block.subject || 'General study'}</p>
-                        {block.goal && (
-                          <p className="mt-2 text-xs leading-5 text-gray-600 dark:text-gray-300">
-                            {block.goal}
-                          </p>
+                        <p className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-300">{block.subject || 'General study'}</p>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                          {block.method && (
+                            <span className="rounded-full bg-brand-50 px-2 py-1 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200">
+                              {block.method}
+                            </span>
+                          )}
+                          {block.location && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-gray-600 dark:bg-white/5 dark:text-gray-300">
+                              <MapPin className="h-3 w-3" />
+                              {block.location}
+                            </span>
+                          )}
+                        </div>
+                        {block.steps?.length > 0 && (
+                          <ol className="mt-3 space-y-2">
+                            {block.steps.map((step, stepIndex) => (
+                              <li key={`${stepIndex}-${step}`} className="flex items-start gap-2 text-xs leading-5 text-gray-700 dark:text-gray-200">
+                                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-200">
+                                  {stepIndex + 1}
+                                </span>
+                                <span>{step}</span>
+                              </li>
+                            ))}
+                          </ol>
                         )}
-                      </div>
+                        {block.goal && (
+                          <div className="mt-3 rounded-lg border border-brand-200 bg-brand-50/70 p-2.5 dark:border-brand-500/20 dark:bg-brand-500/5">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-200">Done when</p>
+                            <p className="mt-1 text-xs leading-5 text-gray-700 dark:text-gray-200">{block.goal}</p>
+                          </div>
+                        )}
+                        {block.resources?.length > 0 && (
+                          <div className="mt-3 border-t border-gray-200 pt-2.5 dark:border-white/10">
+                            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Learning resources</p>
+                            <ul className="space-y-1.5">
+                              {block.resources.map((resource, resourceIndex) => {
+                                const href = resourceSearchUrl(resource)
+                                if (!href) return null
+
+                                return (
+                                  <li key={`${resource.title}-${resourceIndex}`}>
+                                    <a
+                                      href={href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-start gap-1.5 text-xs text-brand-700 underline decoration-brand-300 underline-offset-2 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200"
+                                    >
+                                      <ExternalLink className="mt-0.5 h-3 w-3 shrink-0" />
+                                      <span>{resource.title} <span className="text-gray-500 dark:text-gray-400">· {resource.provider}</span></span>
+                                    </a>
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          </div>
+                        )}
+                      </section>
                     ))}
                   </div>
                 )}

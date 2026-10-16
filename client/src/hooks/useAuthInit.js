@@ -8,8 +8,9 @@ let refreshHydrationPromise = null
  * Runs once on app mount. If the person previously logged in with
  * "Remember me", we optimistically paint their cached name/email and try
  * to silently redeem the httpOnly refresh cookie for a fresh access token.
- * If that fails (cookie expired/revoked) or "Remember me" wasn't set, we
- * land in the logged-out state and the route guards take it from there.
+ * If the refresh token is rejected, we clear the saved session. Temporary
+ * network/server failures keep the cached session so the app does not log out
+ * just because the API is briefly unavailable.
  *
  * React 18 StrictMode can trigger the same effect twice during a single page
  * refresh, so both effects share the refresh request and independently hydrate
@@ -39,10 +40,11 @@ export function useAuthInit() {
         const { accessToken } = await refreshHydrationPromise
         if (cancelled) return
         useAuthStore.getState().restoreSession(accessToken)
-        const cachedUser = JSON.parse(localStorage.getItem('focusroom_cached_user') || 'null')
-        if (cachedUser) useAuthStore.getState().setState({ user: cachedUser })
-      } catch {
-        if (!cancelled) useAuthStore.getState().clearAuth()
+      } catch (error) {
+        if (cancelled) return
+        if (error.response?.status === 401) {
+          useAuthStore.getState().clearAuth()
+        }
       } finally {
         if (!cancelled) useAuthStore.getState().setInitializing(false)
       }

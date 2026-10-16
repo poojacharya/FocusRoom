@@ -59,7 +59,7 @@ export const useAuthStore = create((set) => ({
 
   hydrateFromCache: () => {
     const cached = readCachedUser()
-    if (cached) set({ user: cached })
+    set({ user: cached, isAuthenticated: true })
   },
 
   clearAuth: () => {

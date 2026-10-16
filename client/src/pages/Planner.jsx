@@ -70,7 +70,7 @@ export default function Planner() {
           <Card>
             <SectionHeader
               title={plan ? 'Edit your plan' : 'Build your plan'}
-              subtitle="Add your exam date, subjects, and how many hours you can study each day"
+              subtitle="Add your exam date and topics. Every study block will include ordered steps, a clear finish line, and targeted learning resources."
             />
             <PlannerForm
               form={form}

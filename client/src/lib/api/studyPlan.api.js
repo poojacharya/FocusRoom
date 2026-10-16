@@ -31,7 +31,7 @@ export async function deleteStudyPlanRequest() {
 
 // Powers the Planner page's "Generate Plan" button — saves the
 // submitted exam date / subjects+topics / available hours AND runs the
-// server-side Claude call in one request, returning the full plan with
+// server-side AI call in one request, returning the full plan with
 // `generatedSchedule` populated.
 export async function generateStudyScheduleRequest(payload) {
   const { data } = await api.post('/study-plan/generate', payload)

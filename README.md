@@ -25,9 +25,10 @@ Instead of switching between separate apps for tasks, notes, timers, calendars, 
 
 ### 🧠 AI Study Planner
 
-* Generate structured study plans
-* Organize study goals and sessions
-* Designed to make planning less overwhelming and more actionable
+* Generate a detailed day-by-day study roadmap tailored to your exam date, subjects, topics, and available hours
+* Get ordered actions, time estimates, study methods, locations, and measurable completion checks for each focus block
+* Open targeted resource searches from trusted learning providers, including Khan Academy, OpenStax, and MIT OpenCourseWare
+* Use spaced review, practice, and a rolling 30-day plan horizon to keep preparation realistic and actionable
 
 ### ⏱️ Focus Sessions
 
@@ -198,10 +199,21 @@ Use the provided `.env.example` files as templates.
 Set `CLIENT_URL` on the server to the exact HTTPS origin of the deployed frontend
 (no wildcard); comma-separated origins are supported when multiple frontend
 origins are required. The same allowlist is used by Express APIs and Socket.IO.
-For a separately hosted frontend, set `VITE_API_URL` at client build time to the
-backend origin (for example, `https://api.example.com`); set `VITE_SOCKET_URL`
-only when the Socket.IO server uses a different origin. The API enables
-credentialed requests, so production refresh cookies require HTTPS.
+Set `NODE_ENV=production` on the deployed API so refresh cookies are marked
+Secure and use production SameSite settings.
+For a Vercel frontend with a separately hosted backend, set
+`FOCUSROOM_API_URL` in Vercel to the backend origin (for example,
+`https://focusroom-api.onrender.com`), set the Vercel project root to `client`,
+and leave `VITE_API_URL` unset. The
+Vercel API function proxies `/api/*` requests through the frontend origin so
+the browser can persist the httpOnly refresh cookie without relying on
+cross-site cookies. Set `VITE_SOCKET_URL` to the backend origin when Socket.IO
+uses that separate backend.
+
+For other separately hosted frontends, set `VITE_API_URL` at client build time
+to the backend origin. The API enables credentialed requests, so production
+refresh cookies require HTTPS; browsers that block third-party cookies may
+require deploying the API behind a same-origin proxy.
 
 ### 4. Start the application
 
